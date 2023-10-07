@@ -1,13 +1,30 @@
 import os
 import argparse
 
+def checkHeader(header_line):
+	bool header_is_correct = True
+	header = line.split()
+	header_is_correct &= (header[0] == "Net id")
+	header_is_correct &=  ((header[-1] == "Expected wirelength") || (header[-1] == "Expected delay"))
+	if len(header) > 2:
+		header_is_correct &= (len(header) == 3)
+		header_is_correct &= (header[1] == "Sink id")
+
+	return header_is_correct
+
+
+
+
 def getNetValPair(file_lines):
 
 	header = None
+	net_val_pair = {}
 	for line_num, line in enumerate(file_lines):
 		if line_num == 0:
-			header = line
-
+			assert checkHeader(line)
+		else:
+			split_line = 
+			net_id = int()
 
 
 
