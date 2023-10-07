@@ -23,13 +23,35 @@ def getNetValPair(file_lines):
 		if line_num == 0:
 			assert checkHeader(line)
 		else:
-			split_line = 
-			net_id = int()
+			split_line = line.split()
+			net_id = None
+			sink_id = None
+			val = None
+			net_id = int(split_line[0])
+			if len(split_line) == 2:
+				val = split_line[1]
+			else:
+				assert len(split_line) == 3
+				sink_id = int(split_line[1])
+				val = float(split_line[2])
+
+			if net_id in net_val_pair:
+				assert sink_id
+				net_val_pair[net_id][sink_id] = val
+			else:
+				if sink_id:
+					net_val_pair[net_id] = {sink_id: val}
+				else:
+					net_val_pair[net_id] = val
+
+	return net_val_pair
 
 
 
 
-def main(act_file_name, est_file_name):
+
+
+def main(act_file_name, est_file_name, out_file_name):
 	act_file_lines = None
 	est_file_lines = None
 
@@ -49,6 +71,7 @@ def getArgs():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--act_file_name", required=True, help="File that contains the actual results")
 	parser.add_argument("--est_file_name", required=True, help="File that contains the actual results")
+	parser.add_argument("--out_file_name", required=True, help="File that contains the actual results")
 
 	args = parser.parse_args()
 	return args
@@ -57,4 +80,4 @@ if __name__ == "__main__":
 	args = getArgs()
 	assert os.path.exists(args.act_file_name)
 	assert os.path.exists(args.est_file_name)
-	main(args.act_file_name, args.est_file_name)
+	main(args.act_file_name, args.est_file_name, args.out_file_name)
