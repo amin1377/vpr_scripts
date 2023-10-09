@@ -62,7 +62,14 @@ def main(act_file_name, est_file_name, out_file_name):
 		est_file_lines = [line.strip() for line in est_file.readlines()]
 
 	act_file_net_val_pair = getNetValPair(act_file_lines)
+	act_file_net_val_pair = {k: act_file_net_val_pair[k] for k in sorted(act_file_net_val_pair)}
+
 	est_file_net_val_pair = getNetValPair(est_file_lines)
+	est_file_net_val_pair = {k: est_file_net_val_pair[k] for k in sorted(est_file_net_val_pair)}
+
+	with open(out_file_name, 'w') as out_file:
+		assert len(act_file_net_val_pair) == len(est_file_net_val_pair)
+
 
 
 
