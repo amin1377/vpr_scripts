@@ -2,10 +2,10 @@ import os
 import argparse
 
 def checkHeader(header_line):
-	bool header_is_correct = True
-	header = line.split()
+	header_is_correct = True
+	header = header_line.split("\t")
 	header_is_correct &= (header[0] == "Net id")
-	header_is_correct &=  ((header[-1] == "Expected wirelength") || (header[-1] == "Expected delay"))
+	header_is_correct &=  ((header[-1] == "Expected wirelength") or (header[-1] == "Expected delay"))
 	if len(header) > 2:
 		header_is_correct &= (len(header) == 3)
 		header_is_correct &= (header[1] == "Sink id")
@@ -29,13 +29,13 @@ def getNetValPair(file_lines):
 			header = line
 			assert checkHeader(line)
 		else:
-			split_line = line.split()
+			split_line = line.split("\t")
 			net_id = None
 			sink_id = None
 			val = None
 			net_id = int(split_line[0])
 			if len(split_line) == 2:
-				val = flaot(split_line[1])
+				val = float(split_line[1])
 			else:
 				assert len(split_line) == 3
 				sink_id = int(split_line[1])
@@ -76,27 +76,31 @@ def main(act_file_name, est_file_name, out_file_name):
 	assert len(act_file_net_val_pair) == len(est_file_net_val_pair)
 
 	with open(out_file_name, 'w') as out_file:
-		out_file_name.write(header)
-		include_sink_num = (len(out_file_name.split()) == 3) 
-		assert include_sink_num or (len(out_file_name.split()) == 2)
+		out_file.write(f"{header}\n")
+		include_sink_num = (len(header.split("\t")) == 3) 
+		assert include_sink_num or (len(header.split("\t")) == 2)
 		for net_id in act_file_net_val_pair:
 			assert net_id in est_file_net_val_pair
 			act_val = act_file_net_val_pair[net_id]
 			est_val = est_file_net_val_pair[net_id]
 			
-			assert len(act_val) == len(est_val)
 			assert isinstance(act_val, dict) == isinstance(est_val, dict) 
 
 			if isinstance(act_val, dict):
+				assert len(act_val) == len(est_val)
 				act_val = getSortedDict(act_val)
 				est_val = getSortedDict(est_val)
-				ratio = est_val / act_val
 				for sink_num in act_val:
-					out_file_name.write(f"{net_id}\t{sink_num}\t{ratio}")
+					if act_val[sink_num] == 0.:
+						continue
+					ratio = ((est_val[sink_num] - act_val[sink_num]) / act_val[sink_num])
+					out_file.write(f"{net_id}\t{sink_num}\t{ratio:.2f}\n")
 
 			else:
-				ratio = est_val / act_val
-				out_file_name.write(f"{net_id}\t{ratio}")
+				if act_val == 0.:
+					continue
+				ratio = ((est_val - act_val) / act_val)
+				out_file.write(f"{net_id}\t{ratio:.2f}\n")
 
 
 
