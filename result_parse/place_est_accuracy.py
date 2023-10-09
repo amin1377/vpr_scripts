@@ -1,5 +1,6 @@
 import os
 import argparse
+import matplotlib.pyplot as plt
 
 def checkHeader(header_line):
 	header_is_correct = True
@@ -168,13 +169,64 @@ def main(task_dir):
 		assert os.path.isfile(place_td_est_dir)
 		out_td_ratio_file_name = os.path.join(circuit_dir, "td_ratio.txt")
 
-		circuit_wl_map[sub_dir] = getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
+		circuit_td_map[sub_dir] = getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
-		net_fan_out_dir = os.path.join(circuit_dir, "net_info.txt")
-		assert os.path.isfile(net_fan_out_dir)
+		circuit_fan_out_dir = os.path.join(circuit_dir, "net_info.txt")
+		assert os.path.isfile(circuit_fan_out_dir)
 
-		circuit_net_info[sub_dir] = getNetInfo(net_fan_out_dir)
+		circuit_net_info[sub_dir] = getNetInfo(circuit_fan_out_dir)
 
+
+	union_fan_out = unionFanOut(circuit_net_info)
+	print(union_fan_out)
+
+	fan_out_wl_cnt_map = {key: 0 for key in union_fan_out}
+	fan_out_wl_ratio_map = {key: 0. for key in union_fan_out}
+
+	for sub_dir in circuit_wl_map:
+		for net_num in circuit_wl_map[sub_dir]:
+			assert sub_dir in circuit_net_info
+			assert sub_dir in circuit_wl_map
+			assert net_num in circuit_net_info[sub_dir]
+			assert net_num in circuit_wl_map[sub_dir]
+
+			net_fan_out = circuit_net_info[sub_dir][net_num]
+			ratio = circuit_wl_map[sub_dir][net_num]
+			if ratio >= 0:
+				assert ratio <= 1
+				fan_out_wl_cnt_map[net_fan_out] += 1
+				fan_out_wl_ratio_map[net_fan_out] += abs(ratio)
+
+
+	for fan_out in union_fan_out:
+		ratio = fan_out_wl_ratio_map[fan_out]
+		cnt = fan_out_wl_cnt_map[fan_out]
+		if not cnt == 0:
+			fan_out_wl_ratio_map[fan_out] = ratio/cnt
+		else:
+			fan_out_wl_ratio_map.pop(fan_out)
+			fan_out_wl_cnt_map.pop(fan_out)
+
+	keys = list(fan_out_wl_ratio_map.keys())
+	values = list(fan_out_wl_ratio_map.values())
+	dist_vals = list(fan_out_wl_cnt_map.values())
+
+	fig = plt.figure()
+
+	val_sub_plot = fig.add_subplot(1, 2, 1)
+	val_sub_plot.plot(keys, values, marker='o', color='b', label='Data')
+	val_sub_plot.set_xlabel('Keys')
+	val_sub_plot.set_ylabel('Values')
+	val_sub_plot.set_title('Line Plot of Dictionary Values')
+
+	dist_sub_plot = fig.add_subplot(1, 2, 2)
+	dist_sub_plot.plot(keys, dist_vals, marker='o', color='b', label='Data')
+	dist_sub_plot.set_xlabel('Keys')
+	dist_sub_plot.set_ylabel('Values')
+	dist_sub_plot.set_title('Line Plot of Dictionary Values')
+
+	plt.tight_layout()
+	plt.show()
 
 
 
