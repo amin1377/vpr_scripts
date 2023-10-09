@@ -13,12 +13,13 @@ def checkHeader(header_line):
 	return header_is_correct
 
 
-def getSortedDict(input_dict):
+def getSortedDictByKey(input_dict):
 	sorted_dict = {k: input_dict[k] for k in sorted(input_dict)}
 	return sorted_dict
 
-
-
+def getSortedDictByVal(input_dict):
+	sorted_dict = dict(sorted(input_dict.items(), key=lambda item: item[1]))
+	return sorted_dict
 
 def getNetValPair(file_lines):
 
