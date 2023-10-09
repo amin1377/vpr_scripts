@@ -71,10 +71,10 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 		est_file_lines = [line.strip() for line in est_file.readlines()]
 
 	header, act_file_net_val_pair = getNetValPair(act_file_lines)
-	act_file_net_val_pair = getSortedDict(act_file_net_val_pair)
+	act_file_net_val_pair = getSortedDictByKey(act_file_net_val_pair)
 
 	_, est_file_net_val_pair = getNetValPair(est_file_lines)
-	est_file_net_val_pair = getSortedDict(est_file_net_val_pair)
+	est_file_net_val_pair = getSortedDictByKey(est_file_net_val_pair)
 
 	assert len(act_file_net_val_pair) == len(est_file_net_val_pair)
 
@@ -92,27 +92,33 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 
 			if isinstance(act_val, dict):
 				assert len(act_val) == len(est_val)
-				act_val = getSortedDict(act_val)
-				est_val = getSortedDict(est_val)
+				act_val = getSortedDictByKey(act_val)
+				est_val = getSortedDictByKey(est_val)
 				for sink_num in act_val:
 					if act_val[sink_num] == 0.:
-						continue
-					ratio = ((est_val[sink_num] - act_val[sink_num]) / act_val[sink_num])
+						ratio = -1
+					else:
+						ratio = ((est_val[sink_num] - act_val[sink_num]) / act_val[sink_num])
 					ratio_arr[net_id][sink_num] = ratio
 					out_file.write(f"{net_id}\t{sink_num}\t{ratio:.2f}\n")
 
 			else:
 				if act_val == 0.:
-					continue
-				ratio = ((est_val - act_val) / act_val)
+					ratio = -1
+				else:
+					ratio = ((est_val - act_val) / act_val)
 				ratio_arr[net_id] = ratio
 				out_file.write(f"{net_id}\t{ratio:.2f}\n")
 
 	return ratio_arr
 
 def getNetInfo(net_fan_out_dir):
+	net_info_lines = None
+	with open(net_fan_out_dir, 'r') as net_info_file:
+		net_info_lines = [line.strip() for line in net_info_file.readlines()]
+
 	net_sink_map = {}
-	for line_num, line in enumerate(file_lines):
+	for line_num, line in enumerate(net_info_lines):
 		if line_num == 0:
 			header = line.split("\t")
 			assert header[0] == "Net id"
@@ -121,19 +127,29 @@ def getNetInfo(net_fan_out_dir):
 			net_id = int(line.split("\t")[0])
 			num_sinks = int(line.split("\t")[1])
 			assert not net_id in net_sink_map
-			net_sink_map[neT_id] = net_sink_map
+			net_sink_map[net_id] = num_sinks
 
 	return net_sink_map
 
+def unionFanOut(circuits_fan_out):
+	fan_outs = set()
+	for circuit_name in circuits_fan_out:
+		for net_num in circuits_fan_out[circuit_name]:
+			fan_outs.add(int(circuits_fan_out[circuit_name][net_num]))
 
+	fan_outs = sorted(fan_outs)
+
+	return fan_outs
 
 
 def main(task_dir):
-	sub_dirs = os.listdir()
+	sub_dirs = os.listdir(task_dir)
 
 	circuit_wl_map = {}
 	circuit_td_map = {}
 	circuit_net_info = {}
+	wl_fan_out_dict = {}
+	print(f"Circuits: {sub_dirs}")
 
 	for sub_dir in sub_dirs:
 		circuit_dir = os.path.join(task_dir, sub_dir, "common")
@@ -173,6 +189,4 @@ def getArgs():
 
 if __name__ == "__main__":
 	args = getArgs()
-	assert os.path.exists(args.act_file_name)
-	assert os.path.exists(args.est_file_name)
-	main(args.act_file_name, args.est_file_name, args.out_file_name)
+	main(args.task_dir)
