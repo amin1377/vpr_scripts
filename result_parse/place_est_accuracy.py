@@ -67,14 +67,18 @@ def main(act_file_name, est_file_name, out_file_name):
 	with open(est_file_name, 'r') as est_file:
 		est_file_lines = [line.strip() for line in est_file.readlines()]
 
-	header_line, act_file_net_val_pair = getNetValPair(act_file_lines)
+	header, act_file_net_val_pair = getNetValPair(act_file_lines)
 	act_file_net_val_pair = getSortedDict(act_file_net_val_pair)
 
 	_, est_file_net_val_pair = getNetValPair(est_file_lines)
 	est_file_net_val_pair = getSortedDict(est_file_net_val_pair)
 
+	assert len(act_file_net_val_pair) == len(est_file_net_val_pair)
+
 	with open(out_file_name, 'w') as out_file:
-		assert len(act_file_net_val_pair) == len(est_file_net_val_pair)
+		out_file_name.write(header)
+		include_sink_num = (len(out_file_name.split()) == 3) 
+		assert include_sink_num or (len(out_file_name.split()) == 2)
 		for net_id in act_file_net_val_pair:
 			assert net_id in est_file_net_val_pair
 			act_val = act_file_net_val_pair[net_id]
@@ -86,9 +90,13 @@ def main(act_file_name, est_file_name, out_file_name):
 			if isinstance(act_val, dict):
 				act_val = getSortedDict(act_val)
 				est_val = getSortedDict(est_val)
+				ratio = est_val / act_val
+				for sink_num in act_val:
+					out_file_name.write(f"{net_id}\t{sink_num}\t{ratio}")
+
 			else:
-				ratio = est_val / est_val
-				out_file_name.write(f"")
+				ratio = est_val / act_val
+				out_file_name.write(f"{net_id}\t{ratio}")
 
 
 
