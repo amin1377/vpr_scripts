@@ -109,6 +109,21 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 
 	return ratio_arr
 
+def getNetInfo(net_fan_out_dir):
+	net_sink_map = {}
+	for line_num, line in enumerate(file_lines):
+		if line_num == 0:
+			header = line.split("\t")
+			assert header[0] == "Net id"
+			assert header[1] == "Num Sinks"
+		else:
+			net_id = int(line.split("\t")[0])
+			num_sinks = int(line.split("\t")[1])
+			assert not net_id in net_sink_map
+			net_sink_map[neT_id] = net_sink_map
+
+	return net_sink_map
+
 
 
 
@@ -138,8 +153,10 @@ def main(task_dir):
 
 		circuit_wl_map[sub_dir] = getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
-		net_fan_out = os.path.join(circuit_dir, "net_info.txt")
-		assert os.path.isfile(net_fan_out)
+		net_fan_out_dir = os.path.join(circuit_dir, "net_info.txt")
+		assert os.path.isfile(net_fan_out_dir)
+
+		circuit_net_info[sub_dir] = getNetInfo(net_fan_out_dir)
 
 
 
