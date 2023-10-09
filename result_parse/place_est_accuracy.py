@@ -55,10 +55,6 @@ def getNetValPair(file_lines):
 	return header, net_val_pair
 
 
-
-
-
-
 def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 	act_file_lines = None
 	est_file_lines = None
@@ -84,7 +80,6 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 		include_sink_num = (len(header.split("\t")) == 3) 
 		assert include_sink_num or (len(header.split("\t")) == 2)
 		for net_id in act_file_net_val_pair:
-			ratio_arr[net_id] = {}
 			assert net_id in est_file_net_val_pair
 			act_val = act_file_net_val_pair[net_id]
 			est_val = est_file_net_val_pair[net_id]
@@ -97,21 +92,34 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 				est_val = getSortedDictByKey(est_val)
 				for sink_num in act_val:
 					if act_val[sink_num] == 0.:
-						ratio = -1
+						continue
 					else:
 						ratio = ((est_val[sink_num] - act_val[sink_num]) / act_val[sink_num])
-					ratio_arr[net_id][sink_num] = ratio
+					if not net_id in ratio_arr:
+						ratio_arr[net_id] = {}
+					ratio_arr[net_id][sink_num] = abs(ratio)
 					out_file.write(f"{net_id}\t{sink_num}\t{ratio:.2f}\n")
 
 			else:
 				if act_val == 0.:
-					ratio = -1
+					continue
 				else:
 					ratio = ((est_val - act_val) / act_val)
-				ratio_arr[net_id] = ratio
+				ratio_arr[net_id] = abs(ratio)
 				out_file.write(f"{net_id}\t{ratio:.2f}\n")
 
-	return ratio_arr
+	return act_file_net_val_pair, est_file_net_val_pair, ratio_arr
+
+def getWlPercentage(act_file_name, est_file_name):
+	act_file_lines = None
+	est_file_lines = None
+
+	with open(act_file_name, 'r') as act_file:
+		act_file_lines = [line.strip() for line in act_file.readlines()]
+
+	with open(est_file_name, 'r') as est_file:
+		est_file_lines = [line.strip() for line in est_file.readlines()]
+
 
 def getNetInfo(net_fan_out_dir):
 	net_info_lines = None
@@ -146,9 +154,16 @@ def unionFanOut(circuits_fan_out):
 def main(task_dir):
 	sub_dirs = os.listdir(task_dir)
 
-	circuit_wl_map = {}
-	circuit_td_map = {}
+	circuit_act_net_wl_map = {}
+	circuit_est_net_wl_map = {}
+	circuit_wl_err_map = {}
+
+	circuit_act_net_td_map = {}
+	circuit_est_net_td_map = {}
+	circuit_td_err_map = {}
+
 	circuit_net_info = {}
+
 	wl_fan_out_dict = {}
 	print(f"Circuits: {sub_dirs}")
 
@@ -161,7 +176,8 @@ def main(task_dir):
 		assert os.path.isfile(place_wl_est_dir)
 		out_wl_ratio_file_name = os.path.join(circuit_dir, "wl_ratio.txt")
 
-		circuit_wl_map[sub_dir] = getCircuitInfo(place_wl_act_dir, place_wl_est_dir, out_wl_ratio_file_name)
+		circuit_act_net_wl_map[sub_dir], circuit_est_net_wl_map[sub_dir], circuit_wl_err_map[sub_dir] = \
+			getCircuitInfo(place_wl_act_dir, place_wl_est_dir, out_wl_ratio_file_name)
 
 		place_td_act_dir = os.path.join(circuit_dir, "route_td.txt")
 		assert os.path.isfile(place_td_act_dir)
@@ -169,7 +185,8 @@ def main(task_dir):
 		assert os.path.isfile(place_td_est_dir)
 		out_td_ratio_file_name = os.path.join(circuit_dir, "td_ratio.txt")
 
-		circuit_td_map[sub_dir] = getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
+		circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map[sub_dir] = \
+			getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
 		circuit_fan_out_dir = os.path.join(circuit_dir, "net_info.txt")
 		assert os.path.isfile(circuit_fan_out_dir)
@@ -177,53 +194,73 @@ def main(task_dir):
 		circuit_net_info[sub_dir] = getNetInfo(circuit_fan_out_dir)
 
 
+	total_wl = 0
+	for sub_dir in circuit_act_net_wl_map:
+		for net_id in circuit_act_net_wl_map[sub_dir]:
+			total_wl += circuit_act_net_wl_map[sub_dir][net_id]
+
+
 	union_fan_out = unionFanOut(circuit_net_info)
 	print(union_fan_out)
 
 	fan_out_wl_cnt_map = {key: 0 for key in union_fan_out}
 	fan_out_wl_ratio_map = {key: 0. for key in union_fan_out}
+	fan_out_wl_share = {key: 0. for key in union_fan_out}
 
-	for sub_dir in circuit_wl_map:
-		for net_num in circuit_wl_map[sub_dir]:
+	for sub_dir in circuit_wl_err_map:
+		num_nets = 0
+		for net_num in circuit_wl_err_map[sub_dir]:
 			assert sub_dir in circuit_net_info
-			assert sub_dir in circuit_wl_map
+			assert sub_dir in circuit_wl_err_map
 			assert net_num in circuit_net_info[sub_dir]
-			assert net_num in circuit_wl_map[sub_dir]
+			assert net_num in circuit_wl_err_map[sub_dir]
 
 			net_fan_out = circuit_net_info[sub_dir][net_num]
-			ratio = circuit_wl_map[sub_dir][net_num]
-			if ratio >= 0:
-				assert ratio <= 1
-				fan_out_wl_cnt_map[net_fan_out] += 1
-				fan_out_wl_ratio_map[net_fan_out] += abs(ratio)
+			err_ratio = circuit_wl_err_map[sub_dir][net_num]
+			net_wl = circuit_act_net_wl_map[sub_dir][net_num]
+			assert err_ratio >= 0
+			fan_out_wl_cnt_map[net_fan_out] += 1
+			fan_out_wl_ratio_map[net_fan_out] += err_ratio
+			fan_out_wl_share[net_fan_out] += net_wl
 
 
 	for fan_out in union_fan_out:
-		ratio = fan_out_wl_ratio_map[fan_out]
+		err_ratio = fan_out_wl_ratio_map[fan_out]
+		wl_share = fan_out_wl_share[fan_out]
 		cnt = fan_out_wl_cnt_map[fan_out]
 		if not cnt == 0:
-			fan_out_wl_ratio_map[fan_out] = ratio/cnt
+			fan_out_wl_ratio_map[fan_out] = err_ratio / cnt
+			fan_out_wl_share[fan_out] = ((wl_share / total_wl) * 100)
 		else:
 			fan_out_wl_ratio_map.pop(fan_out)
+			fan_out_wl_share.pop(fan_out)
 			fan_out_wl_cnt_map.pop(fan_out)
 
 	keys = list(fan_out_wl_ratio_map.keys())
-	values = list(fan_out_wl_ratio_map.values())
+	wl_err = list(fan_out_wl_ratio_map.values())
+	wl_share_vals = list(fan_out_wl_share.values())
 	dist_vals = list(fan_out_wl_cnt_map.values())
+
 
 	fig = plt.figure()
 
-	val_sub_plot = fig.add_subplot(1, 2, 1)
-	val_sub_plot.plot(keys, values, marker='o', color='b', label='Data')
-	val_sub_plot.set_xlabel('Keys')
-	val_sub_plot.set_ylabel('Values')
-	val_sub_plot.set_title('Line Plot of Dictionary Values')
+	val_sub_plot = fig.add_subplot(2, 2, 1)
+	val_sub_plot.plot(keys, wl_err, marker='o', color='b', label='Data')
+	val_sub_plot.set_xlabel('Fan-out')
+	val_sub_plot.set_ylabel('WL Error')
+	# val_sub_plot.set_title('Line Plot of Dictionary Values')
 
-	dist_sub_plot = fig.add_subplot(1, 2, 2)
+	dist_sub_plot = fig.add_subplot(2, 2, 2)
 	dist_sub_plot.plot(keys, dist_vals, marker='o', color='b', label='Data')
-	dist_sub_plot.set_xlabel('Keys')
-	dist_sub_plot.set_ylabel('Values')
-	dist_sub_plot.set_title('Line Plot of Dictionary Values')
+	dist_sub_plot.set_xlabel('Fan-out')
+	dist_sub_plot.set_ylabel('Num Nets')
+	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
+
+	dist_sub_plot = fig.add_subplot(2, 2, 3)
+	dist_sub_plot.plot(keys, wl_share_vals, marker='o', color='b', label='Data')
+	dist_sub_plot.set_xlabel('Fan-out')
+	dist_sub_plot.set_ylabel('Percentage of router WL')
+	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
 
 	plt.tight_layout()
 	plt.show()
