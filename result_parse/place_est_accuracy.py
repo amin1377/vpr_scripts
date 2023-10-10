@@ -188,6 +188,7 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 			net_fan_out = circuit_net_info[sub_dir][net_num]
 			err_ratio = circuit_wl_err_map[sub_dir][net_num]
 			net_wl = circuit_act_net_wl_map[sub_dir][net_num]
+			print(err_ratio)
 			assert err_ratio >= 0
 			fan_out_wl_cnt_map[net_fan_out] += 1
 			fan_out_wl_ratio_map[net_fan_out] += err_ratio
@@ -275,14 +276,14 @@ def plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals):
 	dist_sub_plot = fig.add_subplot(2, 2, 2)
 	dist_sub_plot.plot(fan_out_vals, wl_share_vals, marker='o', color='b', label='Data')
 	dist_sub_plot.set_xlabel('Fan-out')
-	dist_sub_plot.set_ylabel('Percentage of router WL')
-	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
+	dist_sub_plot.set_ylabel('Percentage of Wire Length Share in Total WL')
+	dist_sub_plot.set_title('Distribution of Wire Length Percentage Based on Fan-Out')
 
 	dist_sub_plot = fig.add_subplot(2, 2, 3)
 	dist_sub_plot.plot(fan_out_vals, wl_dist_vals, marker='o', color='b', label='Data')
 	dist_sub_plot.set_xlabel('Fan-out')
-	dist_sub_plot.set_ylabel('Num Nets')
-	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
+	dist_sub_plot.set_ylabel('Number of Nets')
+	dist_sub_plot.set_title('Number of Nets Based on Fan-Out')
 
 def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
 	min_dx = min(dx_vals)
@@ -311,9 +312,15 @@ def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
 	fig = plt.figure()
 
 	td_err_sub_plot = fig.add_subplot(2, 1, 1)
+	td_err_sub_plot.set_xlabel("dx")
+	td_err_sub_plot.set_ylabel("dy")
+	td_err_sub_plot.set_title("Difference Between Actual and Estimated Delay")
 	_, _, _, im_td = td_err_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=td_err)
 
 	dist_sub_plot = fig.add_subplot(2, 1, 2)
+	dist_sub_plot.set_xlabel("dx")
+	dist_sub_plot.set_ylabel("dy")
+	dist_sub_plot.set_title("Number of Nets")
 	_, _, _, im_dist = dist_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=dist)
 
 	fig.colorbar(im_td, ax=td_err_sub_plot)
