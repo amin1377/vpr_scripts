@@ -213,6 +213,40 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 
 def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map):
 
+	assert len(circuit_act_net_td_map) == len(circuit_est_net_td_map)
+	assert len(circuit_td_err_map) == len(circuit_act_net_td_map)
+
+	td_err_map = {}
+	td_dist_vals_map = {}
+	for circuit in circuit_act_net_td_map:
+		curr_act_net_td = circuit_act_net_td_map[circuit]
+		curr_est_net_td = circuit_est_net_td_map[circuit]
+		curr_td_err = circuit_td_err_map[circuit]
+		assert len(curr_act_net_td) == len(curr_est_net_td)
+		assert len(curr_act_net_td) == len(curr_td_err)
+
+		for key in curr_act_net_td:
+			sink_num = key[0]
+			dx = key[1]
+			dy = key[2]
+			td = circuit_td_err_map[key]
+			if key in td_err_map:
+				assert (dx,dy) in td_dist_vals_map
+				td_dist_vals_map[(dx,dy)] += 1
+				td_err_map[(dx,dy)] += td
+			else:
+				td_dist_vals_map[(dx,dy)] = 1
+				td_err_map[(dx,dy)] = td
+
+	for key in td_err_map:
+		td_err_map[key] /= td_dist_vals_map[key]
+
+	dx_vals = [key[1] for key in td_err_map]
+	dy_vals = [key[2] for key in td_err_map]
+	td_err = [td_err_map[key] for key in td_err_map]
+	td_dist_vals = [td_dist_vals_map[key] for key in td_err_map]
+
+
 	return dx_vals, dy_vals, td_err, td_dist_vals
 
 def main(task_dir):
