@@ -363,7 +363,7 @@ def main(task_dir):
 		assert os.path.isfile(place_wl_est_dir)
 		out_wl_ratio_file_name = os.path.join(circuit_dir, "wl_ratio.txt")
 
-		print(f"\tExtract WL info")
+		print(f"\tProcess WL info")
 		circuit_act_net_wl_map[sub_dir], circuit_est_net_wl_map[sub_dir], circuit_wl_err_map[sub_dir] = \
 			getCircuitInfo(place_wl_act_dir, place_wl_est_dir, out_wl_ratio_file_name)
 
@@ -373,7 +373,7 @@ def main(task_dir):
 		assert os.path.isfile(place_td_est_dir)
 		out_td_ratio_file_name = os.path.join(circuit_dir, "td_ratio.txt")
 
-		print(f"\tExtract td info")
+		print(f"\tProcess td info")
 		circuit_act_net_td_map[sub_dir], circuit_est_net_td_map[sub_dir], circuit_td_err_map[sub_dir] = \
 			getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
@@ -388,7 +388,10 @@ def main(task_dir):
 	dx_vals, dy_vals, td_err_map, td_dist_vals_map = \
 		extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map)
 
+	print("Get info for wl plot")
 	plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals)
+
+	print("Get info for td plot")
 	plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map)
 
 
