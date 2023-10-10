@@ -7,9 +7,12 @@ def checkHeader(header_line):
 	header = header_line.split("\t")
 	header_is_correct &= (header[0] == "Net id")
 	header_is_correct &=  ((header[-1] == "Expected wirelength") or (header[-1] == "Expected delay"))
-	if len(header) > 2:
-		header_is_correct &= (len(header) == 3)
+	if len(header) == 5:
 		header_is_correct &= (header[1] == "Sink id")
+		header_is_correct &= (header[2] == "dx")
+		header_is_correct &= (header[3] == "dy")
+	else:
+		header_is_correct &= (len(header) == 2)
 
 	return header_is_correct
 
@@ -34,13 +37,17 @@ def getNetValPair(file_lines):
 			split_line = line.split("\t")
 			net_id = None
 			sink_id = None
+			dx = None
+			dy = None
 			val = None
 			net_id = int(split_line[0])
 			if len(split_line) == 2:
 				val = float(split_line[1])
 			else:
-				assert len(split_line) == 3
+				assert len(split_line) == 5
 				sink_id = int(split_line[1])
+				dx = int(split_line[2])
+				dy = int(split_line[3])
 				val = float(split_line[2])
 
 			if net_id in net_val_pair:
@@ -48,7 +55,7 @@ def getNetValPair(file_lines):
 				net_val_pair[net_id][sink_id] = val
 			else:
 				if sink_id:
-					net_val_pair[net_id] = {sink_id: val}
+					net_val_pair[net_id] = {(sink_id,dx,dy): val}
 				else:
 					net_val_pair[net_id] = val
 
@@ -77,7 +84,7 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 
 	with open(out_file_name, 'w') as out_file:
 		out_file.write(f"{header}\n")
-		include_sink_num = (len(header.split("\t")) == 3) 
+		include_sink_num = (len(header.split("\t")) == 5) 
 		assert include_sink_num or (len(header.split("\t")) == 2)
 		for net_id in act_file_net_val_pair:
 			assert net_id in est_file_net_val_pair
@@ -90,15 +97,18 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 				assert len(act_val) == len(est_val)
 				act_val = getSortedDictByKey(act_val)
 				est_val = getSortedDictByKey(est_val)
-				for sink_num in act_val:
-					if act_val[sink_num] == 0.:
+				for key in act_val:
+					sink_num = key[0]
+					dx = key[1]
+					dy = key[2]
+					if act_val[key] == 0.:
 						continue
 					else:
-						ratio = ((est_val[sink_num] - act_val[sink_num]) / act_val[sink_num])
+						ratio = ((est_val[sink_num] - act_val[key]) / act_val[key])
 					if not net_id in ratio_arr:
 						ratio_arr[net_id] = {}
-					ratio_arr[net_id][sink_num] = abs(ratio)
-					out_file.write(f"{net_id}\t{sink_num}\t{ratio:.2f}\n")
+					ratio_arr[net_id][(sink_num,dx,dy)] = abs(ratio)
+					out_file.write(f"{net_id}\t{sink_num}\t{dx}\t{dy}\t{ratio:.2f}\n")
 
 			else:
 				if act_val == 0.:
@@ -201,6 +211,9 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 	return fan_out_vals, wl_err, wl_share_vals, dist_vals
 
 
+def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map):
+
+	return dx_vals, dy_vals, td_err, td_dist_vals
 
 def main(task_dir):
 	sub_dirs = os.listdir(task_dir)
@@ -236,7 +249,7 @@ def main(task_dir):
 		assert os.path.isfile(place_td_est_dir)
 		out_td_ratio_file_name = os.path.join(circuit_dir, "td_ratio.txt")
 
-		circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map[sub_dir] = \
+		circuit_act_net_td_map[sub_dir], circuit_est_net_td_map[sub_dir], circuit_td_err_map[sub_dir] = \
 			getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
 		circuit_fan_out_dir = os.path.join(circuit_dir, "net_info.txt")
@@ -244,8 +257,11 @@ def main(task_dir):
 
 		circuit_net_info[sub_dir] = getNetInfo(circuit_fan_out_dir)
 
-	fan_out_vals, wl_err, wl_share_vals, dist_vals = \
+	fan_out_vals, wl_err, wl_share_vals, wl_dist_vals = \
 		extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err_map, circuit_net_info)
+
+	dx_vals, dy_vals, td_err, td_dist_vals = \
+		extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map)
 
 
 	fig = plt.figure()
@@ -263,7 +279,7 @@ def main(task_dir):
 	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
 
 	dist_sub_plot = fig.add_subplot(2, 2, 3)
-	dist_sub_plot.plot(fan_out_vals, dist_vals, marker='o', color='b', label='Data')
+	dist_sub_plot.plot(fan_out_vals, wl_dist_vals, marker='o', color='b', label='Data')
 	dist_sub_plot.set_xlabel('Fan-out')
 	dist_sub_plot.set_ylabel('Num Nets')
 	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
