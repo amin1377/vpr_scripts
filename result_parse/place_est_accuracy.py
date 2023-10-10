@@ -257,7 +257,7 @@ def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err
 				dx = key[1]
 				dy = key[2]
 				td = curr_td_err[key]
-				if key in td_err_map:
+				if (dx,dy) in td_err_map:
 					assert (dx,dy) in td_dist_vals_map
 					td_dist_vals_map[(dx,dy)] += 1
 					td_err_map[(dx,dy)] += td
@@ -271,7 +271,6 @@ def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err
 	dx_vals = [key[0] for key in td_err_map]
 	dy_vals = [key[1] for key in td_err_map]
 	td_dist_vals = [td_dist_vals_map[key] for key in td_err_map]
-
 
 	return dx_vals, dy_vals, td_err_map, td_dist_vals_map
 
@@ -329,7 +328,7 @@ def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
 	dist_sub_plot = fig.add_subplot(2, 1, 2)
 	dist_sub_plot.set_xlabel("dx")
 	dist_sub_plot.set_ylabel("dy")
-	dist_sub_plot.set_title("Number of Nets")
+	dist_sub_plot.set_title("Number of Connections")
 	_, _, _, im_dist = dist_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=dist)
 
 	fig.colorbar(im_td, ax=td_err_sub_plot)
@@ -361,7 +360,7 @@ def main(task_dir):
 		assert os.path.isfile(place_wl_est_dir)
 		out_wl_ratio_file_name = os.path.join(circuit_dir, "wl_ratio.txt")
 
-		print(f"\tProcess WL info")
+		print(f"\tRead circuits WL info")
 		circuit_act_net_wl_map[sub_dir], circuit_est_net_wl_map[sub_dir], circuit_wl_err_map[sub_dir] = \
 			getCircuitInfo(place_wl_act_dir, place_wl_est_dir, out_wl_ratio_file_name)
 
@@ -371,13 +370,14 @@ def main(task_dir):
 		assert os.path.isfile(place_td_est_dir)
 		out_td_ratio_file_name = os.path.join(circuit_dir, "td_ratio.txt")
 
-		print(f"\tProcess td info")
+		print(f"\tRead circuit's td info")
 		circuit_act_net_td_map[sub_dir], circuit_est_net_td_map[sub_dir], circuit_td_err_map[sub_dir] = \
 			getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
 		circuit_fan_out_dir = os.path.join(circuit_dir, "net_info.txt")
 		assert os.path.isfile(circuit_fan_out_dir)
 
+		print(f"\tGet number of fan outs for each net")
 		circuit_net_info[sub_dir] = getNetInfo(circuit_fan_out_dir)
 
 	print("Get info for wl plot")
