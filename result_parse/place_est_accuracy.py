@@ -1,6 +1,7 @@
 import os
 import argparse
 import matplotlib.pyplot as plt
+import numpy as np
 
 def checkHeader(header_line):
 	header_is_correct = True
@@ -48,13 +49,17 @@ def getNetValPair(file_lines):
 				sink_id = int(split_line[1])
 				dx = int(split_line[2])
 				dy = int(split_line[3])
-				val = float(split_line[2])
+				val = float(split_line[4])
 
 			if net_id in net_val_pair:
-				assert sink_id
-				net_val_pair[net_id][sink_id] = val
+				assert sink_id != None
+				assert dx != None
+				assert dy != None
+				net_val_pair[net_id][(sink_id,dx,dy)] = val
 			else:
 				if sink_id:
+					assert dx != None
+					assert dy != None
 					net_val_pair[net_id] = {(sink_id,dx,dy): val}
 				else:
 					net_val_pair[net_id] = val
@@ -87,6 +92,8 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 		include_sink_num = (len(header.split("\t")) == 5) 
 		assert include_sink_num or (len(header.split("\t")) == 2)
 		for net_id in act_file_net_val_pair:
+			if not net_id in ratio_arr:
+				ratio_arr[net_id] = {}
 			assert net_id in est_file_net_val_pair
 			act_val = act_file_net_val_pair[net_id]
 			est_val = est_file_net_val_pair[net_id]
@@ -103,11 +110,8 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 					dy = key[2]
 					if act_val[key] == 0.:
 						continue
-					else:
-						ratio = ((est_val[sink_num] - act_val[key]) / act_val[key])
-					if not net_id in ratio_arr:
-						ratio_arr[net_id] = {}
-					ratio_arr[net_id][(sink_num,dx,dy)] = abs(ratio)
+					ratio = ((est_val[key] - act_val[key]) / act_val[key])
+					ratio_arr[net_id][key] = abs(ratio)
 					out_file.write(f"{net_id}\t{sink_num}\t{dx}\t{dy}\t{ratio:.2f}\n")
 
 			else:
@@ -168,7 +172,6 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 
 
 	union_fan_out = unionFanOut(circuit_net_info)
-	print(union_fan_out)
 
 	fan_out_wl_cnt_map = {key: 0 for key in union_fan_out}
 	fan_out_wl_ratio_map = {key: 0. for key in union_fan_out}
@@ -216,38 +219,105 @@ def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err
 	assert len(circuit_act_net_td_map) == len(circuit_est_net_td_map)
 	assert len(circuit_td_err_map) == len(circuit_act_net_td_map)
 
+	circuits = list(circuit_act_net_td_map.keys())
+
+	for circuit in circuits:
+		nets = list(circuit_act_net_td_map[circuit].keys())
+		for net in nets:
+			keys = list(circuit_act_net_td_map[circuit][net].keys())
+			for key in keys:
+				if not key in circuit_td_err_map[circuit][net]:
+					circuit_act_net_td_map[circuit][net].pop(key)
+					circuit_est_net_td_map[circuit][net].pop(key)
+
+
 	td_err_map = {}
 	td_dist_vals_map = {}
-	for circuit in circuit_act_net_td_map:
-		curr_act_net_td = circuit_act_net_td_map[circuit]
-		curr_est_net_td = circuit_est_net_td_map[circuit]
-		curr_td_err = circuit_td_err_map[circuit]
-		assert len(curr_act_net_td) == len(curr_est_net_td)
-		assert len(curr_act_net_td) == len(curr_td_err)
-
-		for key in curr_act_net_td:
-			sink_num = key[0]
-			dx = key[1]
-			dy = key[2]
-			td = circuit_td_err_map[key]
-			if key in td_err_map:
-				assert (dx,dy) in td_dist_vals_map
-				td_dist_vals_map[(dx,dy)] += 1
-				td_err_map[(dx,dy)] += td
-			else:
-				td_dist_vals_map[(dx,dy)] = 1
-				td_err_map[(dx,dy)] = td
+	for circuit in circuits:
+		nets = circuit_act_net_td_map[circuit].keys()
+		for net in nets:
+			curr_act_net_td = circuit_act_net_td_map[circuit][net]
+			curr_est_net_td = circuit_est_net_td_map[circuit][net]
+			curr_td_err = circuit_td_err_map[circuit][net]
+			assert len(curr_act_net_td) == len(curr_est_net_td)
+			assert len(curr_act_net_td) == len(curr_td_err)
+			for key in curr_act_net_td:
+				sink_num = key[0]
+				dx = key[1]
+				dy = key[2]
+				td = curr_td_err[key]
+				if key in td_err_map:
+					assert (dx,dy) in td_dist_vals_map
+					td_dist_vals_map[(dx,dy)] += 1
+					td_err_map[(dx,dy)] += td
+				else:
+					td_dist_vals_map[(dx,dy)] = 1
+					td_err_map[(dx,dy)] = td
 
 	for key in td_err_map:
 		td_err_map[key] /= td_dist_vals_map[key]
 
-	dx_vals = [key[1] for key in td_err_map]
-	dy_vals = [key[2] for key in td_err_map]
-	td_err = [td_err_map[key] for key in td_err_map]
+	dx_vals = [key[0] for key in td_err_map]
+	dy_vals = [key[1] for key in td_err_map]
 	td_dist_vals = [td_dist_vals_map[key] for key in td_err_map]
 
 
-	return dx_vals, dy_vals, td_err, td_dist_vals
+	return dx_vals, dy_vals, td_err_map, td_dist_vals_map
+
+def plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals):
+	fig = plt.figure()
+	val_sub_plot = fig.add_subplot(2, 2, 1)
+	val_sub_plot.plot(fan_out_vals, wl_err, marker='o', color='b', label='Data')
+	val_sub_plot.set_xlabel('Fan-out')
+	val_sub_plot.set_ylabel('WL Error')
+	# val_sub_plot.set_title('Line Plot of Dictionary Values')
+
+	dist_sub_plot = fig.add_subplot(2, 2, 2)
+	dist_sub_plot.plot(fan_out_vals, wl_share_vals, marker='o', color='b', label='Data')
+	dist_sub_plot.set_xlabel('Fan-out')
+	dist_sub_plot.set_ylabel('Percentage of router WL')
+	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
+
+	dist_sub_plot = fig.add_subplot(2, 2, 3)
+	dist_sub_plot.plot(fan_out_vals, wl_dist_vals, marker='o', color='b', label='Data')
+	dist_sub_plot.set_xlabel('Fan-out')
+	dist_sub_plot.set_ylabel('Num Nets')
+	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
+
+def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
+	min_dx = min(dx_vals)
+	max_dx = max(dx_vals)
+	min_dy = min(dy_vals)
+	max_dy = max(dy_vals)
+	x_bins = np.arange(min_dx, max_dx + 1, 1)
+	y_bins = np.arange(min_dy, max_dy + 1, 1)
+
+	td_err = []
+	dist = []
+	x_arr = []
+	y_arr = []
+	for x in x_bins:
+		for y in y_bins:
+			x_arr.append(x)
+			y_arr.append(y)
+			if (x,y) in td_err_map:
+				print(x, y, td_err_map[(x,y)], td_dist_vals_map[(x,y)])
+				td_err.append(td_err_map[(x,y)] * 100)
+				dist.append(td_dist_vals_map[(x,y)])
+			else:
+				td_err.append(0.)
+				dist.append(0)
+
+	fig = plt.figure()
+
+	td_err_sub_plot = fig.add_subplot(2, 1, 1)
+	_, _, _, im_td = td_err_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=td_err)
+
+	dist_sub_plot = fig.add_subplot(2, 1, 2)
+	_, _, _, im_dist = dist_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=dist)
+
+	fig.colorbar(im_td, ax=td_err_sub_plot)
+	fig.colorbar(im_dist, ax=dist_sub_plot)
 
 def main(task_dir):
 	sub_dirs = os.listdir(task_dir)
@@ -294,31 +364,16 @@ def main(task_dir):
 	fan_out_vals, wl_err, wl_share_vals, wl_dist_vals = \
 		extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err_map, circuit_net_info)
 
-	dx_vals, dy_vals, td_err, td_dist_vals = \
+	dx_vals, dy_vals, td_err_map, td_dist_vals_map = \
 		extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map)
 
+	plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals)
+	plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map)
 
-	fig = plt.figure()
 
-	val_sub_plot = fig.add_subplot(2, 2, 1)
-	val_sub_plot.plot(fan_out_vals, wl_err, marker='o', color='b', label='Data')
-	val_sub_plot.set_xlabel('Fan-out')
-	val_sub_plot.set_ylabel('WL Error')
-	# val_sub_plot.set_title('Line Plot of Dictionary Values')
-
-	dist_sub_plot = fig.add_subplot(2, 2, 2)
-	dist_sub_plot.plot(fan_out_vals, wl_share_vals, marker='o', color='b', label='Data')
-	dist_sub_plot.set_xlabel('Fan-out')
-	dist_sub_plot.set_ylabel('Percentage of router WL')
-	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
-
-	dist_sub_plot = fig.add_subplot(2, 2, 3)
-	dist_sub_plot.plot(fan_out_vals, wl_dist_vals, marker='o', color='b', label='Data')
-	dist_sub_plot.set_xlabel('Fan-out')
-	dist_sub_plot.set_ylabel('Num Nets')
-	# dist_sub_plot.set_title('Line Plot of Dictionary Values')
 
 	plt.tight_layout()
+
 	plt.show()
 
 
