@@ -182,8 +182,8 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 	for circuit in circuits:
 		nets = list(circuit_act_net_wl_map[circuit].keys())
 		for net in nets:
-			wl = circuit_act_net_wl_map[circuit][net]
-			if not isinstance(wl, (int,float)):
+			wl_err = circuit_wl_err_map[circuit][net]
+			if not isinstance(wl_err, (int,float)):
 				circuit_act_net_wl_map[circuit].pop(net)
 				circuit_est_net_wl_map[circuit].pop(net)
 				circuit_wl_err_map[circuit].pop(net)
@@ -199,7 +199,6 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 			net_fan_out = circuit_net_info[sub_dir][net_num]
 			err_ratio = circuit_wl_err_map[sub_dir][net_num]
 			net_wl = circuit_act_net_wl_map[sub_dir][net_num]
-			print(err_ratio)
 			assert err_ratio >= 0
 			fan_out_wl_cnt_map[net_fan_out] += 1
 			fan_out_wl_ratio_map[net_fan_out] += err_ratio
@@ -313,7 +312,6 @@ def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
 			x_arr.append(x)
 			y_arr.append(y)
 			if (x,y) in td_err_map:
-				print(x, y, td_err_map[(x,y)], td_dist_vals_map[(x,y)])
 				td_err.append(td_err_map[(x,y)] * 100)
 				dist.append(td_dist_vals_map[(x,y)])
 			else:
@@ -382,16 +380,18 @@ def main(task_dir):
 
 		circuit_net_info[sub_dir] = getNetInfo(circuit_fan_out_dir)
 
+	print("Get info for wl plot")
 	fan_out_vals, wl_err, wl_share_vals, wl_dist_vals = \
 		extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err_map, circuit_net_info)
 
+	print("Get info for td plot")
 	dx_vals, dy_vals, td_err_map, td_dist_vals_map = \
 		extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map)
 
-	print("Get info for wl plot")
+	print("Plotting wl")
 	plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals)
 
-	print("Get info for td plot")
+	print("Plotting td")
 	plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map)
 
 
