@@ -343,6 +343,7 @@ def main(task_dir):
 	print(f"Circuits: {sub_dirs}")
 
 	for sub_dir in sub_dirs:
+		print(f"Start processing {sub_dir}")
 		circuit_dir = os.path.join(task_dir, sub_dir, "common")
 		
 		place_wl_act_dir = os.path.join(circuit_dir, "route_wl.txt")
@@ -351,6 +352,7 @@ def main(task_dir):
 		assert os.path.isfile(place_wl_est_dir)
 		out_wl_ratio_file_name = os.path.join(circuit_dir, "wl_ratio.txt")
 
+		print(f"\tExtract WL info")
 		circuit_act_net_wl_map[sub_dir], circuit_est_net_wl_map[sub_dir], circuit_wl_err_map[sub_dir] = \
 			getCircuitInfo(place_wl_act_dir, place_wl_est_dir, out_wl_ratio_file_name)
 
@@ -360,6 +362,7 @@ def main(task_dir):
 		assert os.path.isfile(place_td_est_dir)
 		out_td_ratio_file_name = os.path.join(circuit_dir, "td_ratio.txt")
 
+		print(f"\tExtract td info")
 		circuit_act_net_td_map[sub_dir], circuit_est_net_td_map[sub_dir], circuit_td_err_map[sub_dir] = \
 			getCircuitInfo(place_td_act_dir, place_td_est_dir, out_td_ratio_file_name)
 
