@@ -177,6 +177,17 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 	fan_out_wl_ratio_map = {key: 0. for key in union_fan_out}
 	fan_out_wl_share = {key: 0. for key in union_fan_out}
 
+	circuits = list(circuit_act_net_wl_map.keys())
+
+	for circuit in circuits:
+		nets = list(circuit_act_net_wl_map[circuit].keys())
+		for net in nets:
+			wl = circuit_act_net_wl_map[circuit][net]
+			if not isinstance(wl, (int,float)):
+				circuit_act_net_wl_map[circuit].pop(net)
+				circuit_est_net_wl_map[circuit].pop(net)
+				circuit_wl_err_map[circuit].pop(net)
+
 	for sub_dir in circuit_wl_err_map:
 		num_nets = 0
 		for net_num in circuit_wl_err_map[sub_dir]:
