@@ -2,6 +2,7 @@ import os
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib
 
 def checkHeader(header_line):
 	header_is_correct = True
@@ -278,18 +279,21 @@ def plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals):
 	fig = plt.figure()
 	val_sub_plot = fig.add_subplot(2, 2, 1)
 	val_sub_plot.plot(fan_out_vals, wl_err, marker='o', color='b', label='Data')
+	val_sub_plot.set_xscale("log")
 	val_sub_plot.set_xlabel('Fan-out')
 	val_sub_plot.set_ylabel('WL Error')
 	# val_sub_plot.set_title('Line Plot of Dictionary Values')
 
-	dist_sub_plot = fig.add_subplot(2, 2, 2)
-	dist_sub_plot.plot(fan_out_vals, wl_share_vals, marker='o', color='b', label='Data')
-	dist_sub_plot.set_xlabel('Fan-out')
-	dist_sub_plot.set_ylabel('Percentage of Wire Length Share in Total WL')
-	dist_sub_plot.set_title('Distribution of Wire Length Percentage Based on Fan-Out')
+	wl_share_sub_plot = fig.add_subplot(2, 2, 2)
+	wl_share_sub_plot.plot(fan_out_vals, wl_share_vals, marker='o', color='b', label='Data')
+	wl_share_sub_plot.set_xscale("log")
+	wl_share_sub_plot.set_xlabel('Fan-out')
+	wl_share_sub_plot.set_ylabel('Percentage of Wire Length Share in Total WL')
+	wl_share_sub_plot.set_title('Distribution of Wire Length Percentage Based on Fan-Out')
 
 	dist_sub_plot = fig.add_subplot(2, 2, 3)
 	dist_sub_plot.plot(fan_out_vals, wl_dist_vals, marker='o', color='b', label='Data')
+	dist_sub_plot.set_xscale("log")
 	dist_sub_plot.set_xlabel('Fan-out')
 	dist_sub_plot.set_ylabel('Number of Nets')
 	dist_sub_plot.set_title('Number of Nets Based on Fan-Out')
@@ -329,7 +333,7 @@ def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
 	dist_sub_plot.set_xlabel("dx")
 	dist_sub_plot.set_ylabel("dy")
 	dist_sub_plot.set_title("Number of Connections")
-	_, _, _, im_dist = dist_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=dist)
+	_, _, _, im_dist = dist_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=dist, norm=matplotlib.colors.LogNorm())
 
 	fig.colorbar(im_td, ax=td_err_sub_plot)
 	fig.colorbar(im_dist, ax=dist_sub_plot)
