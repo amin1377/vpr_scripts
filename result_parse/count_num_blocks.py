@@ -1,4 +1,5 @@
 import os
+import argparse
 
 def count_blocks_by_layer(file_path):
     blocks_by_layer = {0:0, 1:0}
@@ -29,7 +30,7 @@ def main(directory):
     for subdir in os.listdir(directory):
         subdir_path = os.path.join(directory, subdir, "common")
         if os.path.isdir(subdir_path):
-            place_file_path = os.path.join(subdir_path, f"{subdir[:-2]}.pre-vpr.place")
+            place_file_path = os.path.join(subdir_path, f"{subdir[:-5]}.place")
             if os.path.isfile(place_file_path):
                 blocks_by_layer = count_blocks_by_layer(place_file_path)
 
@@ -42,5 +43,13 @@ def main(directory):
             else:
                 print(f"Couldn't find {place_file_path}")
 
-# Replace '/path/to/dir' with the actual path to the directory you want to process
-main('/home/amin/wintermute_mount/run_koios/run001/aman_3d_coffe.xml')
+def getArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task_dir", required=True, help="File that contains the actual results")
+
+    args = parser.parse_args()
+    return args
+
+if __name__ == "__main__":
+    args = getArgs()
+    main(args.task_dir)
