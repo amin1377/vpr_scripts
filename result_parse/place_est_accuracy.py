@@ -226,6 +226,83 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 
 	return fan_out_vals, wl_err, wl_share_vals, dist_vals
 
+def extractWlCircuitAvgInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err_map, circuit_net_info):
+
+
+	union_fan_out = unionFanOut(circuit_net_info)
+
+	circuits = list(circuit_act_net_wl_map.keys())
+	num_circuits = len(circuits)
+
+	for circuit in circuits:
+		nets = list(circuit_act_net_wl_map[circuit].keys())
+		for net in nets:
+			wl_err = circuit_wl_err_map[circuit][net]
+			if not isinstance(wl_err, (int,float)):
+				circuit_act_net_wl_map[circuit].pop(net)
+				circuit_est_net_wl_map[circuit].pop(net)
+				circuit_wl_err_map[circuit].pop(net)
+
+	circuit_total_wl = {circuit : 0 for circuit in circuits}
+	for circuit in circuit_act_net_wl_map:
+		for net_id in circuit_act_net_wl_map[circuit]:
+			circuit_total_wl[circuit] += circuit_act_net_wl_map[circuit][net_id]
+
+	fan_out_circuit_cnt = {fan_out : 0 for fan_out in union_fan_out}
+	circuit_fan_out = {circuit : [] for circuit in circuits}
+	for circuit in circuits:
+		seen_fan_outs = []
+		for net in circuit_net_info[circuit]:
+			net_fan_out = circuit_net_info[circuit][net]
+			if net_fan_out in seen_fan_outs:
+				continue
+			seen_fan_outs.append(net_fan_out)
+			fan_out_circuit_cnt[net_fan_out] += 1
+		circuit_fan_out[circuit] = seen_fan_outs
+
+	circuit_fan_out_net_cnt = {circuit: {fan_out : 0. for fan_out in circuit_fan_out[circuit]} for circuit in circuits}
+	circuit_fan_out_wl_err = {circuit: {fan_out : 0. for fan_out in circuit_fan_out[circuit]} for circuit in circuits}
+	circuit_fan_out_wl_share = {circuit: {fan_out : 0. for fan_out in circuit_fan_out[circuit]} for circuit in circuits}
+
+	for circuit in circuits: 
+		for net_num in circuit_wl_err_map[circuit]:
+			assert circuit in circuit_net_info
+			assert circuit in circuit_wl_err_map
+			assert net_num in circuit_net_info[circuit]
+			assert net_num in circuit_wl_err_map[circuit]
+
+			net_fan_out = circuit_net_info[circuit][net_num]
+			err_ratio = circuit_wl_err_map[circuit][net_num]
+			net_wl = circuit_act_net_wl_map[circuit][net_num]
+			
+			circuit_fan_out_net_cnt[circuit][net_fan_out] += 1
+			circuit_fan_out_wl_err[circuit][net_fan_out] += err_ratio
+			circuit_fan_out_wl_share[circuit][net_fan_out] += ((net_wl / circuit_total_wl[circuit]) * 100)
+
+	for circuit in circuits:
+		for fan_out in circuit_fan_out[circuit]:
+			num_net = circuit_fan_out_net_cnt[circuit][fan_out]
+			circuit_fan_out_wl_err[circuit][fan_out] /= num_net
+
+	fan_out_wl_cnt_map = {fan_out : 0. for fan_out in union_fan_out}
+	fan_out_wl_share = {fan_out : 0. for fan_out in union_fan_out}
+	fan_out_wl_err = {fan_out : 0. for fan_out in union_fan_out}
+
+	for fan_out in union_fan_out:
+		for circuit in circuits:
+			if fan_out in circuit_fan_out_net_cnt[circuit]:
+				fan_out_wl_cnt_map[fan_out] += (circuit_fan_out_net_cnt[circuit][fan_out] / fan_out_circuit_cnt[fan_out])
+				fan_out_wl_share[fan_out] += (circuit_fan_out_wl_share[circuit][fan_out] / fan_out_circuit_cnt[fan_out])
+				fan_out_wl_err[fan_out] += (circuit_fan_out_wl_err[circuit][fan_out] / fan_out_circuit_cnt[fan_out])
+
+	fan_out_vals = list(fan_out_wl_err.keys())
+	wl_err = list(fan_out_wl_err.values())
+	wl_share_vals = list(fan_out_wl_share.values())
+	dist_vals = list(fan_out_wl_cnt_map.values())
+
+	return fan_out_vals, wl_err, wl_share_vals, dist_vals
+
+
 
 def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map):
 
