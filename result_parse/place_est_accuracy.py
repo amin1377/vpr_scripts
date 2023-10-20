@@ -3,6 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
+import mplleaflet
 
 def checkHeader(header_line):
 	header_is_correct = True
@@ -112,7 +113,7 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 					if act_val[key] == 0.:
 						continue
 					ratio = ((est_val[key] - act_val[key]) / act_val[key])
-					ratio_arr[net_id][key] = abs(ratio)
+					ratio_arr[net_id][key] = ratio
 					out_file.write(f"{net_id}\t{sink_num}\t{dx}\t{dy}\t{ratio:.2f}\n")
 
 			else:
@@ -120,7 +121,7 @@ def getCircuitInfo(act_file_name, est_file_name, out_file_name):
 					continue
 				else:
 					ratio = ((est_val - act_val) / act_val)
-				ratio_arr[net_id] = abs(ratio)
+				ratio_arr[net_id] = ratio
 				out_file.write(f"{net_id}\t{ratio:.2f}\n")
 
 	return act_file_net_val_pair, est_file_net_val_pair, ratio_arr
@@ -200,7 +201,7 @@ def extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err
 			net_fan_out = circuit_net_info[sub_dir][net_num]
 			err_ratio = circuit_wl_err_map[sub_dir][net_num]
 			net_wl = circuit_act_net_wl_map[sub_dir][net_num]
-			assert err_ratio >= 0
+			# assert err_ratio >= 0
 			fan_out_wl_cnt_map[net_fan_out] += 1
 			fan_out_wl_ratio_map[net_fan_out] += err_ratio
 			fan_out_wl_share[net_fan_out] += net_wl
