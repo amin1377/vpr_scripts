@@ -353,8 +353,9 @@ def extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err
 
 	return dx_vals, dy_vals, td_err_map, td_dist_vals_map
 
-def plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals):
+def plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals, title):
 	fig = plt.figure()
+	fig.suptitle(title)
 	val_sub_plot = fig.add_subplot(2, 2, 1)
 	val_sub_plot.plot(fan_out_vals, wl_err, marker='o', color='b', label='Data')
 	val_sub_plot.set_xscale("log")
@@ -466,12 +467,17 @@ def main(task_dir):
 	fan_out_vals, wl_err, wl_share_vals, wl_dist_vals = \
 		extractWlInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err_map, circuit_net_info)
 
+	fan_out_vals_circuit_avg, wl_err_circuit_avg, wl_share_vals_circuit_avg, wl_dist_vals_circuit_avg = \
+		extractWlCircuitAvgInfo(circuit_act_net_wl_map, circuit_est_net_wl_map, circuit_wl_err_map, circuit_net_info)
+
 	print("Get info for td plot")
 	dx_vals, dy_vals, td_err_map, td_dist_vals_map = \
 		extractTdInfo(circuit_act_net_td_map, circuit_est_net_td_map, circuit_td_err_map)
 
 	print("Plotting wl")
-	plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals)
+	plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals, "Aggregate All Nets")
+	plotWl(fan_out_vals_circuit_avg, wl_err_circuit_avg, wl_share_vals_circuit_avg, wl_dist_vals_circuit_avg, "Aggregate Avg of Each Circuit")
+
 
 	print("Plotting td")
 	plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map)
