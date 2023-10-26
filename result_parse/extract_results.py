@@ -1,34 +1,15 @@
 import os
-import re
+import re   
+import argparse
+import csv
 
-def check_vpr_output(dir1):
-    matching_subdirs = os.listdir(dir1)
-    print(f"Common Circuits: {matching_subdirs}\n\n")
-
-    for subdir in matching_subdirs:
-        subdir_path1 = os.path.join(dir1, subdir, "common")
-        vpr_out_file1 = os.path.join(subdir_path1, "vpr.out")
-
-        if os.path.isfile(vpr_out_file1):
-            with open(vpr_out_file1, "r") as file1:
-                contents1 = file1.read()
-
-                circuit_name = subdir_path1.split("/")[-2]
-
-                if not "VPR succeeded" in contents1:
-                    print(f"{circuit_name} failed!")
-                    continue
-
-                find_and_print_lines(circuit_name, vpr_out_file1, contents1)
-                
-
-def find_and_print_lines(circuit_name, vpr_out_file1, contents1):
-    lines1 = contents1.split("\n")
+def extract_circuit_info(contents):
+    lines = contents.split("\n")
     
     cpd = -1
     wl = -1
 
-    for line in lines1:
+    for line in lines:
         if "Final critical path delay" in line:
             pattern = r'Final critical path delay \(least slack\)\s*:\s*(.*) ns'
             match = re.search(pattern, line)
@@ -47,8 +28,47 @@ def find_and_print_lines(circuit_name, vpr_out_file1, contents1):
     assert cpd > 0
     assert wl > 0
 
-    print(f"{circuit_name}\t{cpd}\t{wl}")
+    return cpd, wl
+
+
+def check_vpr_output(task_dir, out_file_name):
+    circuits = os.listdir(task_dir)
+    print(f"Circuits: {circuits}\n\n")
+
+    data = [["Circuit", "Td", "WL"]]
+    for circuit in circuits:
+        circuit_dir = os.path.join(task_dir, circuit, "common")
+        vpr_out_file = os.path.join(circuit_dir, "vpr.out")
+
+        if os.path.isfile(vpr_out_file):
+            with open(vpr_out_file, "r") as file1:
+                vpr_out_content = file1.read()
+
+                circuit_name = circuit_dir.split("/")[-2]
+
+                if not "VPR succeeded" in vpr_out_content:
+                    print(f"{circuit_name} failed!")
+                    continue
+                cpd, wl = extract_circuit_info(vpr_out_content)
+                data.append([f"{circuit_name}", f"{cpd:.2f}", f"{wl}"])
+
+        else:
+            print(f"Couldn't find {vpr_out_file}")
+
+    with open(out_file_name, "w") as csv_file:
+        csv_writer = csv.writer(csv_file)
+        csv_writer.writerows(data)
+
+
+
+def getArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--task_dir", required=True, help="File that contains the actual results")
+    parser.add_argument("--out_file_name", required=True, help="Name of the output file")
+
+    args = parser.parse_args()
+    return args
 
 if __name__ == "__main__":
-    directory1 = "/home/amin/wintermute_mount/run_koios/run003/aman_3d_limited.xml"
-    check_vpr_output(directory1)
+    args = getArgs()
+    check_vpr_output(args.task_dir, args.out_file_name)
