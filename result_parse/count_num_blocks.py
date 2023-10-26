@@ -47,7 +47,7 @@ def main(directory, out_file_name):
         else:
             print(f"Couldn't find {subdir_path}")
 
-    with open("out_file_name", "w") as csv_file:
+    with open(out_file_name, "w") as csv_file:
         csv_writer = csv.writer(csv_file)
         csv_writer.writerows(data)
 
