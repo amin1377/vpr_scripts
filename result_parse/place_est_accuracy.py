@@ -360,7 +360,7 @@ def plotWl(fan_out_vals, wl_err, wl_share_vals, wl_dist_vals, title):
 	val_sub_plot.plot(fan_out_vals, wl_err, marker='o', color='b', label='Data')
 	val_sub_plot.set_xscale("log")
 	val_sub_plot.set_xlabel('Fan-out')
-	val_sub_plot.set_ylabel('WL Error')
+	val_sub_plot.set_ylabel('(Place Est. WL - Routed WL) / (Routed WL)')
 	# val_sub_plot.set_title('Line Plot of Dictionary Values')
 
 	wl_share_sub_plot = fig.add_subplot(2, 2, 2)
@@ -405,7 +405,7 @@ def plotTd(dx_vals, dy_vals, td_err_map, td_dist_vals_map):
 	td_err_sub_plot = fig.add_subplot(2, 1, 1)
 	td_err_sub_plot.set_xlabel("dx")
 	td_err_sub_plot.set_ylabel("dy")
-	td_err_sub_plot.set_title("Difference Between Actual and Estimated Delay")
+	td_err_sub_plot.set_title("(Place Est. Delay - Routed Delay) / (Routed Delay)")
 	_, _, _, im_td = td_err_sub_plot.hist2d(x_arr, y_arr, bins=[x_bins.size, y_bins.size], weights=td_err)
 
 	dist_sub_plot = fig.add_subplot(2, 1, 2)
