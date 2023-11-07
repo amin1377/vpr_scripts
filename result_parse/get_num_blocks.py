@@ -17,7 +17,10 @@ def get_block_count(vpr_out_file):
 
 def main(directory):
     subdirs = [subdir for subdir in os.listdir(directory) if os.path.isdir(os.path.join(directory, subdir))]
-
+    print("\t", end="")
+    for blk_type in ["io", "clb", "memory", "dsp_top", "tsv_hole"]:
+        print(blk_type, end="\t")
+    print("")
     for subdir in subdirs:
         vpr_out_file = os.path.join(directory, subdir, "common", "vpr.out")
         
@@ -31,5 +34,5 @@ def main(directory):
         print()
 
 if __name__ == "__main__":
-    directory = "/home/amin/wintermute_mount/run_koios_min_size/run_3d"
+    directory = "/home/amin/wintermute_mount/base_line_update/run_dir_2d"
     main(directory)
