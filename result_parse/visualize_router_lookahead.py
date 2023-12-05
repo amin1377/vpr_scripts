@@ -41,6 +41,8 @@ def extractInfo(csv_file_name):
         assert not dy in data[chan_type][seg_type][dx]
         data[chan_type][seg_type][dx][dy] = {"cong": cong_cost, "delay": delay_cost}
 
+    return data
+
 def getDxDyPlotData(data, chan_type, seg_type):
     delay_arr = []
     cong_arr = []
@@ -85,7 +87,9 @@ def makePlot(router_lookahead_data):
 
 
 
-def main():
+def main(csv_file_name):
+    data = extractInfo(csv_file_name)
+    makePlot(data)
 
     
 
