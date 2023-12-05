@@ -58,11 +58,35 @@ def getDxDyPlotData(data, chan_type, seg_type):
     return delay_arr, cong_arr
 
 def makePlot(router_lookahead_data):
+    for chan in router_lookahead_data:
+        for seg in router_lookahead_data[chan]:
+            delay_arr, cong_arr = getDxDyPlotData(router_lookahead_data, chan, seg)
+            # Extract x, y, and data from the array
+            x = [item[0] for item in delay_arr]
+            y = [item[1] for item in delay_arr]
+            data = [item[2] for item in delay_arr]
+
+            # Create the heatmap using plt.hist2d
+            plt.hist2d(x, y, bins=(np.unique(x), np.unique(y)), cmap='viridis', weights=data)
+
+            # Add colorbar for reference
+            plt.colorbar()
+
+            # Set axis labels
+            plt.xlabel('X')
+            plt.ylabel('Y')
+
+            # Add a title
+            plt.title('Heatmap from 3D Data')
+
+            # Show the plot
+            plt.show()
 
 
 
 
 def main():
+
     
 
 if __name__ == "__main__":
