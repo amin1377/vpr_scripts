@@ -70,7 +70,7 @@ def makePlot(router_lookahead_data, fig, ax, chan_type, seg_type, cost_type):
 
 	ax.set_title(f"CHAN: {chan_type}, Seg: {seg_type}, Cost: {cost_type}")
 
-def getRouterLookaheadDataDiff(router_looaheads_data, cost_type):
+def getRouterLookaheadDataDiff(router_looaheads_data):
 	assert len(router_looaheads_data) == 2
 
 	diff_data = {"CHANX": {}, "CHANY": {}}
@@ -86,21 +86,31 @@ def getRouterLookaheadDataDiff(router_looaheads_data, cost_type):
 					if not dy in diff_data[chan][seg][dx]:
 						diff_data[chan][seg][dx][dy] = {}
 					
-					first_cost = router_looaheads_data[0][chan][seg][dx][dy][cost_type]
-					second_cost = router_looaheads_data[1][chan][seg][dx][dy][cost_type]
-					diff_data[chan][seg][dx][dy] = ((second_cost - first_cost) / (first_cost)) * 100
+					diff_data[chan][seg][dx][dy]["cong"] = 0.
+					diff_data[chan][seg][dx][dy]["delay"] = 0.
 
+					for cost_type in {"cong", "delay"}:
+						first_cost = router_looaheads_data[0][chan][seg][dx][dy][cost_type]
+						second_cost = router_looaheads_data[1][chan][seg][dx][dy][cost_type]
+						try:
+							diff_data[chan][seg][dx][dy][cost_type] = abs(((second_cost - first_cost) / (first_cost))) * 100
+						except:
+							diff_data[chan][seg][dx][dy][cost_type] = 0
+							print(f"First cost was zero[{chan}][{seg}][{dx}][{dy}][{cost_type}]: {first_cost}, {second_cost}")
+
+	return diff_data
 
 
 
 def main(csv_file_names):
 	print(csv_file_names)
-	assert len(csv_file_names) == 1 len(csv_file_names) == 2
+	assert len(csv_file_names) == 1 or len(csv_file_names) == 2
 	router_looaheads_data = []
-	for csv_file_name in csv_file_names
+	num_x = 4
+	num_y = 2
+
+	for csv_file_name in csv_file_names:
 		data = extractInfo(csv_file_name)
-		num_x = 4
-		num_y = 2
 		fig, axs = plt.subplots(num_y, num_x)
 
 		for y in range(num_y):
@@ -114,7 +124,15 @@ def main(csv_file_names):
 		router_looaheads_data.append(data)
 
 	if len(router_looaheads_data) == 2:
-		getRouterLookaheadDataDiff(router_looaheads_data)
+		fig, axs = plt.subplots(num_y, num_x)
+		diff_data = getRouterLookaheadDataDiff(router_looaheads_data)
+		for y in range(num_y):
+			for x in range(num_x):
+				chan_type  = "CHANX" if y == 0 else "CHANY"
+				seg_type = 0 if x % 2 == 0 else 1
+				cost_type = "delay" if int(x / 2) == 0 else "cong"
+				makePlot(diff_data, fig, axs[y, x], chan_type, seg_type, cost_type)
+
 
 
 	plt.tight_layout()
