@@ -44,15 +44,22 @@ def getEmails(csv_file):
 		"Let me know if you have any questions about the grading/comments.\n\n" \
 		"Thanks,\n" \
 		"Amin"
-		print(email)
 		data.append([student_grade_info['email'], email])
+
+	return data
+
+def printEmails(all_student_info, output_file):
+	with open(output_file, 'w') as file:
+		for student_info in all_student_info:
+			file.write(f"{student_info[0]}\n")
+			file.write(f"{student_info[1]}\n\n\n\n")
 
 
 def main():
 	args = getArgs()
 
 	emails = getEmails(args.grade_csv_file)
-	# printEmails(args.output_file)
+	printEmails(emails, args.output_file)
 
 
 
