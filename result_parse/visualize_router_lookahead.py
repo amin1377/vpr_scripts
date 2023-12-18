@@ -52,6 +52,7 @@ def getDxDyPlotData(data, chan_type, seg_type, cost_type):
 			cost_point = [x, y, plot_data[x][y][cost_type]]
 
 			cost_arr.append(cost_point)
+			# print(f"{chan_type},{seg_type},{cost_type},{x},{y},{cost_point}")
 
 	return cost_arr
 
@@ -63,7 +64,7 @@ def makePlot(router_lookahead_data, fig, ax, chan_type, seg_type, cost_type):
 	data = np.array([item[2] for item in cost_arr])
 
 	# Create the heatmap using plt.hist2d
-	h = ax.hist2d(x, y, bins=(np.unique(x), np.unique(y)), cmap='viridis', weights=data)
+	h = ax.hist2d(x, y, bins=(np.arange(x.max()+2), np.arange(y.max()+2)), cmap="coolwarm", weights=data)
 
 	# Add colorbar for reference
 	fig.colorbar(h[3], ax=ax)
@@ -118,7 +119,7 @@ def main(csv_file_names):
 				chan_type  = "CHANX" if y == 0 else "CHANY"
 				seg_type = 0 if x % 2 == 0 else 1
 				cost_type = "delay" if int(x / 2) == 0 else "cong"
-				print(f"Chan type: {chan_type}, Seg type: {seg_type}, cost_type: {cost_type}")
+				# print(f"Chan type: {chan_type}, Seg type: {seg_type}, cost_type: {cost_type}")
 				makePlot(data, fig, axs[y, x], chan_type, seg_type, cost_type)
 			
 		router_looaheads_data.append(data)
