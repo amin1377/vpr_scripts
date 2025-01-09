@@ -8,12 +8,14 @@ def extract_circuit_info(contents):
     
     cpd = -1
     wl = -1
+    num_blocks = -1
     pack_time = -1
     place_time = -1
     route_time = -1
     total_time = -1
 
     for line in lines:
+        num_blocks_line = re.search(r"Netlist num_blocks: ([\d.]+)", line)
         pack_time_line = re.search(r"# Packing took ([\d.]+) seconds", line)
         place_time_line = re.search(r"# Placement took ([\d.]+) seconds", line)
         route_time_line = re.search(r"# Routing took ([\d.]+) seconds", line)
@@ -32,6 +34,8 @@ def extract_circuit_info(contents):
             if match:
                 number = float(match.group(1))
                 wl = number
+        elif num_blocks_line:
+            num_blocks = float(num_blocks_line.group(1))
         elif pack_time_line:
             pack_time = float(pack_time_line.group(1))
         elif place_time_line:
@@ -43,19 +47,20 @@ def extract_circuit_info(contents):
 
     assert cpd > 0
     assert wl > 0
+    assert num_blocks > 0
     assert pack_time > 0
     assert place_time > 0
     assert route_time > 0
     assert total_time > 0
 
-    return cpd, wl, pack_time, place_time, route_time, total_time
+    return cpd, wl, num_blocks, pack_time, place_time, route_time, total_time
 
 
 def check_vpr_output(task_dir, out_file_name):
     circuits = os.listdir(task_dir)
     print(f"Circuits: {circuits}\n\n")
 
-    data = [["Circuit", "Td", "WL", "Pack", "Place", "Route", "Total"]]
+    data = [["Circuit", "Td", "WL", "Number of Blocks", "Pack Time", "Place Time", "Route Time", "Total Time"]]
     for circuit in circuits:
         circuit_dir = os.path.join(task_dir, circuit, "common")
         vpr_out_file = os.path.join(circuit_dir, "vpr.out")
@@ -69,8 +74,8 @@ def check_vpr_output(task_dir, out_file_name):
                 if not "VPR succeeded" in vpr_out_content:
                     print(f"{circuit_name} failed!")
                     continue
-                cpd, wl, pa_time, pl_time, r_time, t_time = extract_circuit_info(vpr_out_content)
-                data.append([f"{circuit_name}", f"{cpd:.2f}", f"{wl}", f"{pa_time}", f"{pl_time}", f"{r_time}", f"{t_time}"])
+                cpd, wl, num_blocks, pa_time, pl_time, r_time, t_time = extract_circuit_info(vpr_out_content)
+                data.append([f"{circuit_name}", f"{cpd:.2f}", f"{wl}", f"{num_blocks}", f"{pa_time}", f"{pl_time}", f"{r_time}", f"{t_time}"])
 
         else:
             print(f"Couldn't find {vpr_out_file}")
