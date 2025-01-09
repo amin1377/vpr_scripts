@@ -17,9 +17,9 @@ def get_grid_loc(root_tag):
     max_y = 0
     max_layer = 0
     for grid_loc_tag in grid_tag:
-        loc_x = grid_loc_tag.get("x")
-        loc_y = grid_loc_tag.get("y")
-        loc_layer = grid_loc_tag.get("layer")
+        loc_x = int(grid_loc_tag.get("x"))
+        loc_y = int(grid_loc_tag.get("y"))
+        loc_layer = int(grid_loc_tag.get("layer"))
         if loc_x > max_x:
             max_x = loc_x
         if loc_y > max_y:
@@ -28,13 +28,18 @@ def get_grid_loc(root_tag):
             max_layer = loc_layer
     return max_x, max_y, max_layer
 
-def remove_inter_die_edge(thread_args):
-    rr_graph_file_dir = thread_args[0]
-    edge_removal_rate = thread_args[1]
-    circuit = thread_args[2]
-    output_dir = thread_args[3]
+def remove_inter_die_edge(thread_arg):
+    rr_graph_file_dir = thread_arg[0]
+    edge_removal_rate = thread_arg[1]
+    circuit = thread_arg[2]
+    output_dir = thread_arg[3]
+
+    rr_graph_name = f"rr_graph_{circuit}_{int(edge_removal_rate*100)}.xml"
+
+    print(f"Start working on {rr_graph_name}!")
 
     tree = ET.parse(rr_graph_file_dir)
+    # print(f"Parsing is done!")
     root = tree.getroot()
     rr_node_tag = root.find("rr_nodes")
     rr_edge_tag = root.find("rr_edges")
@@ -42,6 +47,7 @@ def remove_inter_die_edge(thread_args):
     nodes = {}
 
     max_x, max_y, max_layer = get_grid_loc(root)
+    # print(f"{max_x} {max_y} {max_layer}")
 
     for node_tag in rr_node_tag:
         node_id = int(node_tag.get("id"))
@@ -81,21 +87,22 @@ def remove_inter_die_edge(thread_args):
             grid_3d_edge_tag[src_x][src_y][src_layer].append(edge_tag)
 
     edges_to_remove = []
-    print(f"Reduce number of inter-die connections by {edge_removal_rate}%")
     for x in range(max_x+1):
         for y in range(max_y+1):
             for l in range(max_layer+1):
                 num_elem = int(len(grid_3d_edge_tag[x][y][l]) * edge_removal_rate)
-                print(f"\tLocation ({x},{y},{l}) remove {num_elem} connections out of {len(grid_3d_edge_tag[x][y][l])}!")
                 edges_to_remove.extend(random.sample(grid_3d_edge_tag[x][y][l], num_elem))
+    # print(f"Remove {len(edges_to_remove)} number of edges!")
 
     for edge_to_remove in edges_to_remove:
-        edge_tag.remove(edge_to_remove)
+        src_node = int(edge_to_remove.get("src_node"))
+        sink_node = int(edge_to_remove.get("sink_node"))
+        rr_edge_tag.remove(edge_to_remove)
     
-    new_rr_graph_file_name = f"rr_graph_{circuit}_{edge_removal_rate*100}.xml"
-    tree.write(os.path.join(output_dir, new_rr_graph_file_name), encoding='utf-8', xml_declaration=True)
+    # print(f"Start writing")
+    tree.write(os.path.join(output_dir, rr_graph_name), encoding='utf-8', xml_declaration=False)
     
-    print(f"Writing {new_rr_graph_file_name} is complete!")
+    print(f"Writing {rr_graph_name} is complete!")
 
 def getArgs():
     parser = argparse.ArgumentParser()
@@ -115,9 +122,12 @@ def main():
     
     thread_args = []
     for circuit in circuits:
+        print(f"{circuit}")
         for removal_rate in [0.98, 0.95, 0.9, 0.8]:
+            print(f"\t{removal_rate}")
             rr_graph_dir = os.path.join(rr_graph_resource_dir, f"{circuit}.blif", "common", "rr_graph.xml")
-            assert os.path.exists(rr_graph_dir)
+            # rr_graph_dir = "/home/mohagh18/tmp/tmp_run/rr_graph.xml"
+            assert os.path.isfile(rr_graph_dir)
             thread_args.append([rr_graph_dir, removal_rate, circuit, args.output_dir])
 
     
