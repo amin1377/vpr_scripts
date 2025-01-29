@@ -3,6 +3,7 @@ import random
 import os
 import argparse
 from multiprocessing import Pool
+import time
 
 
 def get_grid_loc(root_tag):
@@ -32,8 +33,11 @@ def remove_inter_die_edge(thread_arg):
 
     print(f"Start working on {rr_graph_name}...")
 
+    start_time = time.perf_counter()
     tree = ET.parse(rr_graph_file_dir)
-    print(f"\tParsing {rr_graph_name} is done!")
+    end_time = time.perf_counter()
+    execution_time = end_time - start_time
+    print(f"\tParsing {rr_graph_name} is done ({execution_time:.6f} seconds)!")
     root = tree.getroot()
     rr_node_tag = root.find("rr_nodes")
     rr_edge_tag = root.find("rr_edges")
@@ -87,14 +91,21 @@ def remove_inter_die_edge(thread_arg):
                 num_elem = int(len(grid_3d_edge_tag[x][y][l]) * edge_removal_rate)
                 edges_to_remove.extend(random.sample(grid_3d_edge_tag[x][y][l], num_elem))
     print(f"\tStart removing {len(edges_to_remove)} number of edges from {rr_graph_name}!")
-
+    start_time = time.perf_counter()
     for edge_to_remove in edges_to_remove:
         src_node = int(edge_to_remove.get("src_node"))
         sink_node = int(edge_to_remove.get("sink_node"))
         rr_edge_tag.remove(edge_to_remove)
+    end_time = time.perf_counter()
+    execution_time = end_time - start_time
+    print(f"\tDone removing {len(edges_to_remove)} number of edges from {rr_graph_name} ({execution_time:.6f} seconds)!")
     
     print(f"\tStart writing {rr_graph_name}")
+    start_time = time.perf_counter()
     tree.write(os.path.join(output_dir, rr_graph_name), encoding='utf-8', xml_declaration=False)
+    end_time = time.perf_counter()
+    execution_time = end_time - start_time
+    print(f"\tDone writing {rr_graph_name} ({execution_time:.6f} seconds)!")
     
     print(f"Writing {rr_graph_name} is complete!")
 
@@ -119,7 +130,7 @@ def main():
     thread_args = []
     for circuit in circuits:
         print(f"{circuit}")
-        for removal_rate in [0]:
+        for removal_rate in [0.5, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]:
             print(f"\t{removal_rate}")
             rr_graph_dir = os.path.join(rr_graph_resource_dir, f"{circuit}.blif", "common", "rr_graph.xml")
             assert os.path.isfile(rr_graph_dir), rr_graph_dir
