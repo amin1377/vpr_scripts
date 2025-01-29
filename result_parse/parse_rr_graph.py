@@ -166,7 +166,7 @@ def main():
 
 
     print(f"Average number of inter-die connections per tile: 0>1: {acc[0]/num[0]:.2f} - 1->0: {acc[1]/num[1]:.2f}")
-    print(f"Average fan-in and fan-out per inter-die connection MUX size: 0: Fan-in {total_fan_in[0]/acc[0]:.2f}, Fan-out {total_fan_out[0]/acc[0]:.2f} - 1: Fan-in {total_fan_in[1]/acc[1]:.2f}, Fan-out {total_fan_out[1]/acc[1]:.2f}")
+    print(f"Average fan-in and fan-out per inter-die connection: 0: Fan-in {total_fan_in[0]/acc[0]:.2f}, Fan-out {total_fan_out[0]/acc[0]:.2f} - 1: Fan-in {total_fan_in[1]/acc[1]:.2f}, Fan-out {total_fan_out[1]/acc[1]:.2f}")
 
 
 
