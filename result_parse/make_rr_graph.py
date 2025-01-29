@@ -90,12 +90,16 @@ def remove_inter_die_edge(thread_arg):
             for l in range(max_layer+1):
                 num_elem = int(len(grid_3d_edge_tag[x][y][l]) * edge_removal_rate)
                 edges_to_remove.extend(random.sample(grid_3d_edge_tag[x][y][l], num_elem))
+    
     print(f"\tStart removing {len(edges_to_remove)} number of edges from {rr_graph_name}!")
     start_time = time.perf_counter()
-    for edge_to_remove in edges_to_remove:
-        src_node = int(edge_to_remove.get("src_node"))
-        sink_node = int(edge_to_remove.get("sink_node"))
-        rr_edge_tag.remove(edge_to_remove)
+    remaining_edges = []
+    for edge_tag in rr_edge_tag:
+        if edge_tag in edges_to_remove:
+            edges_to_remove.remove(edge_tag)
+        else:
+            remaining_edges.append(edge_tag)
+    rr_edge_tag._children = remaining_edges
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     print(f"\tDone removing {len(edges_to_remove)} number of edges from {rr_graph_name} ({execution_time:.6f} seconds)!")
@@ -130,7 +134,7 @@ def main():
     thread_args = []
     for circuit in circuits:
         print(f"{circuit}")
-        for removal_rate in [0.5, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]:
+        for removal_rate in [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]:
             print(f"\t{removal_rate}")
             rr_graph_dir = os.path.join(rr_graph_resource_dir, f"{circuit}.blif", "common", "rr_graph.xml")
             assert os.path.isfile(rr_graph_dir), rr_graph_dir
