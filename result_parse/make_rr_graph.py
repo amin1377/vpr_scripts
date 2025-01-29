@@ -5,12 +5,6 @@ import argparse
 from multiprocessing import Pool
 
 
-circuits = ["gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", "sparcT2_core_stratixiv_arch_timing", \
-            "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", \
-            "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", \
-            "stereo_vision_stratixiv_arch_timing", "cholesky_mc_stratixiv_arch_timing", "directrf_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "LU230_stratixiv_arch_timing", \
-            "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"]
-
 def get_grid_loc(root_tag):
     grid_tag = root_tag.find("grid")
     max_x = 0
@@ -36,10 +30,10 @@ def remove_inter_die_edge(thread_arg):
 
     rr_graph_name = f"rr_graph_{circuit}_{int(edge_removal_rate*100)}.xml"
 
-    print(f"Start working on {rr_graph_name}!")
+    print(f"Start working on {rr_graph_name}...")
 
     tree = ET.parse(rr_graph_file_dir)
-    # print(f"Parsing is done!")
+    print(f"\tParsing {rr_graph_name} is done!")
     root = tree.getroot()
     rr_node_tag = root.find("rr_nodes")
     rr_edge_tag = root.find("rr_edges")
@@ -47,7 +41,7 @@ def remove_inter_die_edge(thread_arg):
     nodes = {}
 
     max_x, max_y, max_layer = get_grid_loc(root)
-    # print(f"{max_x} {max_y} {max_layer}")
+    print(f"\t {circuit} FPGA size: {max_x} {max_y} {max_layer}")
 
     for node_tag in rr_node_tag:
         node_id = int(node_tag.get("id"))
@@ -92,14 +86,14 @@ def remove_inter_die_edge(thread_arg):
             for l in range(max_layer+1):
                 num_elem = int(len(grid_3d_edge_tag[x][y][l]) * edge_removal_rate)
                 edges_to_remove.extend(random.sample(grid_3d_edge_tag[x][y][l], num_elem))
-    # print(f"Remove {len(edges_to_remove)} number of edges!")
+    print(f"\tStart removing {len(edges_to_remove)} number of edges from {rr_graph_name}!")
 
     for edge_to_remove in edges_to_remove:
         src_node = int(edge_to_remove.get("src_node"))
         sink_node = int(edge_to_remove.get("sink_node"))
         rr_edge_tag.remove(edge_to_remove)
     
-    # print(f"Start writing")
+    print(f"\tStart writing {rr_graph_name}")
     tree.write(os.path.join(output_dir, rr_graph_name), encoding='utf-8', xml_declaration=False)
     
     print(f"Writing {rr_graph_name} is complete!")
@@ -117,17 +111,18 @@ def getArgs():
 def main():
     args = getArgs()
     rr_graph_resource_dir = os.path.abspath(args.vtr_run_dir)
+    circuit_dirs = os.listdir(rr_graph_resource_dir)
+    circuits = [circuit.split(".")[0] for circuit in circuit_dirs]
 
     number_of_threads = int(args.j)
     
     thread_args = []
     for circuit in circuits:
         print(f"{circuit}")
-        for removal_rate in [0.98, 0.95, 0.9, 0.8]:
+        for removal_rate in [0]:
             print(f"\t{removal_rate}")
             rr_graph_dir = os.path.join(rr_graph_resource_dir, f"{circuit}.blif", "common", "rr_graph.xml")
-            # rr_graph_dir = "/home/mohagh18/tmp/tmp_run/rr_graph.xml"
-            assert os.path.isfile(rr_graph_dir)
+            assert os.path.isfile(rr_graph_dir), rr_graph_dir
             thread_args.append([rr_graph_dir, removal_rate, circuit, args.output_dir])
 
     
