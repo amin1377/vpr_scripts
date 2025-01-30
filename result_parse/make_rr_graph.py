@@ -45,7 +45,7 @@ def remove_inter_die_edge(thread_arg):
     nodes = {}
 
     max_x, max_y, max_layer = get_grid_loc(root)
-    print(f"\t {circuit} FPGA size: {max_x} {max_y} {max_layer}")
+    print(f"\t{circuit} FPGA size: {max_x} {max_y} {max_layer}")
 
     for node_tag in rr_node_tag:
         node_id = int(node_tag.get("id"))
@@ -93,13 +93,9 @@ def remove_inter_die_edge(thread_arg):
     
     print(f"\tStart removing {len(edges_to_remove)} number of edges from {rr_graph_name}!")
     start_time = time.perf_counter()
-    remaining_edges = []
-    for edge_tag in rr_edge_tag:
-        if edge_tag in edges_to_remove:
-            edges_to_remove.remove(edge_tag)
-        else:
-            remaining_edges.append(edge_tag)
-    rr_edge_tag._children = remaining_edges
+    set_edges_to_remove = set(edges_to_remove)
+    remaining_edgs = [edge for edge in list(rr_edge_tag) if edge not in set_edges_to_remove]
+    rr_edge_tag[:] = remaining_edgs
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     print(f"\tDone removing {len(edges_to_remove)} number of edges from {rr_graph_name} ({execution_time:.6f} seconds)!")
