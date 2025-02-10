@@ -109,6 +109,16 @@ def remove_inter_die_edge(thread_arg):
     
     print(f"Writing {rr_graph_name} is complete!")
 
+def get_remaining_rr_graph(output_dir, circuits, removal_rates):
+    remaning_circuits_removal_rate = []
+    for circuit in circuits:
+        for removal_rate in removal_rates:
+            rr_graph_name = f"rr_graph_{circuit}_{int(removal_rate*100)}.xml"
+            rr_graph_path = os.path.join(output_dir, rr_graph_name)
+            if not os.path.exists(rr_graph_path):
+                remaning_circuits_removal_rate.append([circuit, removal_rate])
+    return remaning_circuits_removal_rate
+
 def getArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument("--vtr_run_dir", required=True, help="VTR task run directory")
@@ -126,15 +136,16 @@ def main():
     circuits = [circuit.split(".")[0] for circuit in circuit_dirs]
 
     number_of_threads = int(args.j)
+    removal_rates = [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]
+    remaining_circuits_removal_rate = get_remaining_rr_graph(args.output_dir, circuits, removal_rates)
+    print(f"Remaining circuits and removal rates: {remaining_circuits_removal_rate}")
     
     thread_args = []
-    for circuit in circuits:
-        print(f"{circuit}")
-        for removal_rate in [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]:
-            print(f"\t{removal_rate}")
-            rr_graph_dir = os.path.join(rr_graph_resource_dir, f"{circuit}.blif", "common", "rr_graph.xml")
-            assert os.path.isfile(rr_graph_dir), rr_graph_dir
-            thread_args.append([rr_graph_dir, removal_rate, circuit, args.output_dir])
+    for circuit, removal_rate in remaining_circuits_removal_rate:
+        print(f"{circuit} {removal_rate}")
+        rr_graph_dir = os.path.join(rr_graph_resource_dir, f"{circuit}.blif", "common", "rr_graph.xml")
+        assert os.path.isfile(rr_graph_dir), rr_graph_dir
+        thread_args.append([rr_graph_dir, removal_rate, circuit, args.output_dir])
 
     
     pool = Pool(number_of_threads)
