@@ -64,7 +64,7 @@ def remove_inter_die_edge(thread_arg):
                 nodes[node_id]["length"] = 16
 
     grid_3d_edge_tag = []
-    
+
     for x in range(max_x+1):
         grid_3d_edge_tag.append([])
         for y in range(max_y+1):
@@ -90,7 +90,7 @@ def remove_inter_die_edge(thread_arg):
             for l in range(max_layer+1):
                 num_elem = int(len(grid_3d_edge_tag[x][y][l]) * edge_removal_rate)
                 edges_to_remove.extend(random.sample(grid_3d_edge_tag[x][y][l], num_elem))
-    
+
     print(f"\tStart removing {len(edges_to_remove)} number of edges from {rr_graph_name}!")
     start_time = time.perf_counter()
     set_edges_to_remove = set(edges_to_remove)
@@ -99,16 +99,16 @@ def remove_inter_die_edge(thread_arg):
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     print(f"\tDone removing {len(edges_to_remove)} number of edges from {rr_graph_name} ({execution_time:.6f} seconds)!")
-    
+
     print(f"\tStart writing {rr_graph_name}")
     start_time = time.perf_counter()
     tree.write(os.path.join(output_dir, rr_graph_name), encoding='utf-8', xml_declaration=False)
     end_time = time.perf_counter()
     execution_time = end_time - start_time
     print(f"\tDone writing {rr_graph_name} ({execution_time:.6f} seconds)!")
-    
-    print(f"Writing {rr_graph_name} is complete!")
 
+    print(f"Writing {rr_graph_name} is complete!")
+    
 def get_remaining_rr_graph(output_dir, circuits, removal_rates):
     remaning_circuits_removal_rate = []
     for circuit in circuits:
@@ -139,7 +139,7 @@ def main():
     removal_rates = [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]
     remaining_circuits_removal_rate = get_remaining_rr_graph(args.output_dir, circuits, removal_rates)
     print(f"Remaining circuits and removal rates: {remaining_circuits_removal_rate}")
-    
+
     thread_args = []
     for circuit, removal_rate in remaining_circuits_removal_rate:
         print(f"{circuit} {removal_rate}")
@@ -147,15 +147,14 @@ def main():
         assert os.path.isfile(rr_graph_dir), rr_graph_dir
         thread_args.append([rr_graph_dir, removal_rate, circuit, args.output_dir])
 
-    
+
     pool = Pool(number_of_threads)
     pool.map(remove_inter_die_edge, thread_args)
     pool.close()
 
     print(f"Done with writing all RR Graphs!")
-            
+
 
 
 if __name__ == "__main__":
     main()
-
