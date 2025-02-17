@@ -67,7 +67,7 @@ def adjust_fan_in_out(thread_arg):
 
     grid_3d_edge_tag = []
     for l in range(max_layer+1):
-      grid_3d_edge_tag.append([])
+        grid_3d_edge_tag.append([])
         for x in range(max_x+1):
             grid_3d_edge_tag[-1].append([])
             for y in range(max_y+1):
@@ -135,7 +135,7 @@ def adjust_fan_in_out(thread_arg):
         print(f"\tStart writing {rr_graph_name}")
         start_time = time.perf_counter()
         # use IO buffer to write
-        with io.open(os.path.join(output_dir, rr_graph_name), 'w') as f:
+        with io.open(os.path.join(output_dir, rr_graph_name), 'wb') as f:
             tree.write(f, encoding='utf-8', xml_declaration=False)
         end_time = time.perf_counter()
         execution_time = end_time - start_time
@@ -171,7 +171,7 @@ def main():
         for edge_removal_rate in [0.8]:
             print(f"{circuit} - Edge removal rate: {edge_removal_rate}...")
             rr_graph_name = f"rr_graph_{circuit}_{int(edge_removal_rate*100)}.xml"
-            rr_graph_dir = os.path.join("/home/mohagh18/tmp/resources", f"{rr_graph_name}")
+            rr_graph_dir = os.path.join("/home/ubuntu/titan_resources", f"{rr_graph_name}")
             if not os.path.isfile(rr_graph_dir):
                 non_existing_rr_graphs.append([circuit, edge_removal_rate])
             elif circuit == "directrf_stratixiv_arch_timing" or circuit == "bitcoin_miner_stratixiv_arch_timing" or circuit == "LU_Network_stratixiv_arch_timing" or \
