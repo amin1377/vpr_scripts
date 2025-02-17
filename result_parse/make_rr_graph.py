@@ -117,6 +117,8 @@ def get_remaining_rr_graph(output_dir, circuits, removal_rates):
             rr_graph_path = os.path.join(output_dir, rr_graph_name)
             if not os.path.exists(rr_graph_path):
                 remaning_circuits_removal_rate.append([circuit, removal_rate])
+            else:
+                print(f"{rr_graph_name} already exists!")
     return remaning_circuits_removal_rate
 
 def getArgs():
