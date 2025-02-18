@@ -167,8 +167,8 @@ def main():
     edge_removal_rates = [0.50, 0.65, 0.80]
 
     thread_args = []
-    for circuit in ["EKF-SLAM_Jacobians_stratixiv_arch_timing"]:
-        for edge_removal_rate in [0.8]:
+    for circuit in circuits:
+        for edge_removal_rate in edge_removal_rates:
             print(f"{circuit} - Edge removal rate: {edge_removal_rate}...")
             rr_graph_name = f"rr_graph_{circuit}_{int(edge_removal_rate*100)}.xml"
             rr_graph_dir = os.path.join("/home/ubuntu/titan_resources", f"{rr_graph_name}")
