@@ -23,9 +23,6 @@ struct GridLoc {
 
 struct NodeInfo {
     std::tuple<int, int, int> high_location;
-    std::tuple<int, int, int> low_location;
-    std::string type;
-    int length = -1;
 };
 
 struct ThreadArg {
@@ -100,37 +97,18 @@ void remove_inter_die_edge(const ThreadArg& thread_arg) {
             loc_tag.attribute("yhigh").as_int(),
             loc_tag.attribute("layer").as_int()
         );
-        
-        std::tuple<int, int, int> loc_low(
-            loc_tag.attribute("xlow").as_int(),
-            loc_tag.attribute("ylow").as_int(),
-            loc_tag.attribute("layer").as_int()
-        );
-        
-        std::string type = node_tag.attribute("type").value();
-        
-        nodes[node_id] = {loc_high, loc_low, type, -1};
-        
-        if (type == "CHANX" || type == "CHANY") {
-            pugi::xml_node seg_tag = node_tag.child("segment");
-            int seg_id = seg_tag.attribute("segment_id").as_int();
-            if (seg_id == 0) {
-                nodes[node_id].length = 4;
-            } else {
-                assert(seg_id == 1);
-                nodes[node_id].length = 16;
-            }
-        }
+                
+        nodes[node_id] = {loc_high};
     }
 
     // 3D grid to store edges between different layers
     std::vector<std::vector<std::vector<std::vector<pugi::xml_node>>>> grid_3d_edge_tag;
     
-    grid_3d_edge_tag.resize(grid_loc.max_x + 1);
-    for (int x = 0; x <= grid_loc.max_x; x++) {
-        grid_3d_edge_tag[x].resize(grid_loc.max_y + 1);
-        for (int y = 0; y <= grid_loc.max_y; y++) {
-            grid_3d_edge_tag[x][y].resize(grid_loc.max_layer + 1);
+    grid_3d_edge_tag.resize(grid_loc.max_layer + 1);
+    for (int l = 0; l <= grid_loc.max_layer; l++) {
+        grid_3d_edge_tag[l].resize(grid_loc.max_x + 1);
+        for (int x = 0; x <= grid_loc.max_x; x++) {
+            grid_3d_edge_tag[l][x].resize(grid_loc.max_y + 1);
         }
     }
 
@@ -145,7 +123,7 @@ void remove_inter_die_edge(const ThreadArg& thread_arg) {
         int sink_layer = std::get<2>(nodes[sink_node].high_location);
         
         if (src_layer != sink_layer) {
-            grid_3d_edge_tag[src_x][src_y][src_layer].push_back(edge_tag);
+            grid_3d_edge_tag[src_layer][src_x][src_y].push_back(edge_tag);
         }
     }
 
@@ -155,7 +133,7 @@ void remove_inter_die_edge(const ThreadArg& thread_arg) {
     for (int x = 0; x <= grid_loc.max_x; x++) {
         for (int y = 0; y <= grid_loc.max_y; y++) {
             for (int l = 0; l <= grid_loc.max_layer; l++) {
-                auto& edges = grid_3d_edge_tag[x][y][l];
+                auto& edges = grid_3d_edge_tag[l][x][y];
                 int num_elem = static_cast<int>(edges.size() * edge_removal_rate);
                 
                 if (num_elem > 0 && !edges.empty()) {
@@ -270,7 +248,7 @@ int main(int argc, char* argv[]) {
     std::vector<ThreadArg> thread_args;
     for (const auto& [circuit, removal_rate] : remaining_circuits_removal_rate) {
         std::cout << circuit << " " << removal_rate << std::endl;
-        fs::path rr_graph_dir = rr_graph_resource_dir / ("rr_graph_" + circuit + ".blif") / "common" / "rr_graph.xml";
+        fs::path rr_graph_dir = rr_graph_resource_dir / ("rr_graph_" + circuit + ".xml");
         
         if (!fs::exists(rr_graph_dir)) {
             std::cerr << "File does not exist: " << rr_graph_dir << std::endl;
@@ -284,7 +262,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::future<void>> futures;
     
     for (const auto& arg : thread_args) {
-        if (futures.size() >= static_cast<size_t>(num_threads)) {
+        while (futures.size() >= static_cast<size_t>(num_threads)) {
             // Wait for a thread to finish if we've reached max threads
             for (auto it = futures.begin(); it != futures.end(); ++it) {
                 if (it->wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
@@ -295,7 +273,7 @@ int main(int argc, char* argv[]) {
             
             // If we still have max threads, sleep a bit
             if (futures.size() >= static_cast<size_t>(num_threads)) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                std::this_thread::sleep_for(std::chrono::seconds(10));
             }
         }
         
