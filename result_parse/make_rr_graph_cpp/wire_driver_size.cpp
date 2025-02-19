@@ -222,38 +222,15 @@ void adjust_fan_in_out(const std::vector<std::string>& thread_arg) {
         std::cout << "\tStart removing " << edges_to_remove.size() << " number of edges from " 
                   << rr_graph_name << "..." << std::endl;
         start_time = std::chrono::high_resolution_clock::now();
-        
-        // Use set instead of unordered_set for xml_node objects
-        std::set<pugi::xml_node, EdgeNodeCompare> set_edges_to_remove;
-        for (const auto& edge : edges_to_remove) {
-            set_edges_to_remove.insert(edge);
-        }
-        
-        // Filter edges to keep
-        std::vector<pugi::xml_node> remaining_edges;
-        for (pugi::xml_node edge : original_edges) {
-            if (set_edges_to_remove.find(edge) == set_edges_to_remove.end()) {
-                remaining_edges.push_back(edge);
-            }
-        }
-        
-        // Remove all edges
-        for (pugi::xml_node child = rr_edge_tag.first_child(); child; ) {
-            pugi::xml_node next = child.next_sibling();
-            rr_edge_tag.remove_child(child);
-            child = next;
-        }
-        
-        // Add back remaining edges
-        for (pugi::xml_node edge : remaining_edges) {
-            rr_edge_tag.append_copy(edge);
+
+        for (pugi::xml_node edge : edges_to_remove) {
+            rr_edge_tag.remove_child(edge);
         }
         
         end_time = std::chrono::high_resolution_clock::now();
         execution_time = end_time - start_time;
         std::cout << "\tDone removing " << edges_to_remove.size() << " number of edges from " 
-                  << rr_graph_name << " (" << execution_time.count() << " seconds) - " 
-                  << remaining_edges.size() << " edges remaining!" << std::endl;
+                  << rr_graph_name << " (" << execution_time.count() << " seconds)" << std::endl;
                   
         std::cout << "\tStart writing " << rr_graph_name << std::endl;
         start_time = std::chrono::high_resolution_clock::now();
@@ -325,7 +302,7 @@ int main(int argc, char* argv[]) {
             
             std::string rr_graph_name = "rr_graph_" + circuit + "_" + 
                                        std::to_string(static_cast<int>(edge_removal_rate * 100)) + ".xml";
-            std::string rr_graph_dir = "/home/ubuntu/titan_resources/" + rr_graph_name;
+            std::string rr_graph_dir = resource_dir + rr_graph_name;
             
             if (!fs::exists(rr_graph_dir)) {
                 non_existing_rr_graphs.push_back({circuit, std::to_string(edge_removal_rate)});
@@ -350,16 +327,24 @@ int main(int argc, char* argv[]) {
     
     // Run tasks in parallel
     std::vector<std::future<void>> futures;
-    for (const auto& args : thread_args) {
-        futures.push_back(std::async(std::launch::async, adjust_fan_in_out, args));
-        
-        // Limit concurrent tasks based on available threads
-        if (futures.size() >= static_cast<size_t>(number_of_threads)) {
-            for (auto& future : futures) {
-                future.wait();
+    for (const auto& arg : thread_args) {
+        while (futures.size() >= static_cast<size_t>(number_of_threads)) {
+            // Wait for a thread to finish if we've reached max threads
+            for (auto it = futures.begin(); it != futures.end(); ++it) {
+                if (it->wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+                    futures.erase(it);
+                    break;
+                }
             }
-            futures.clear();
+            
+            // If we still have max threads, sleep a bit
+            if (futures.size() >= static_cast<size_t>(number_of_threads)) {
+                std::this_thread::sleep_for(std::chrono::seconds(10));
+            }
         }
+        
+        // Launch new thread
+        futures.push_back(std::async(std::launch::async, adjust_fan_in_out, arg));
     }
     
     // Wait for remaining tasks

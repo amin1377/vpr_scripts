@@ -154,9 +154,7 @@ void remove_inter_die_edge(const ThreadArg& thread_arg) {
 
     std::cout << "\tStart removing " << edges_to_remove.size() << " number of edges from " << rr_graph_name << "!" << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
-    
-    std::set<pugi::xml_node> set_edges_to_remove(edges_to_remove.begin(), edges_to_remove.end());
-    
+        
     for (pugi::xml_node edge : edges_to_remove) {
         rr_edge_tag.remove_child(edge);
     }
