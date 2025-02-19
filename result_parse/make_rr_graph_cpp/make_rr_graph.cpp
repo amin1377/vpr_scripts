@@ -228,46 +228,38 @@ std::vector<std::pair<std::string, double>> get_remaining_rr_graph(
 
 int main(int argc, char* argv[]) {
     // Parse command line arguments
-    std::string vtr_run_dir;
-    std::string output_dir;
+    std::string resource_dir;
     int num_threads = 1;
     
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--vtr_run_dir" && i + 1 < argc) {
-            vtr_run_dir = argv[++i];
-        } else if (arg == "--output_dir" && i + 1 < argc) {
-            output_dir = argv[++i];
+        if (arg == "--resource_dir" && i + 1 < argc) {
+            resource_dir = argv[++i];
         } else if (arg == "-j" && i + 1 < argc) {
             num_threads = std::stoi(argv[++i]);
         }
     }
     
-    if (vtr_run_dir.empty() || output_dir.empty()) {
-        std::cerr << "Usage: " << argv[0] << " --vtr_run_dir <dir> --output_dir <dir> -j <threads>" << std::endl;
+    if (resource_dir.empty()) {
+        std::cerr << "Usage: " << argv[0] << " --resource_dir <dir> -j <threads>" << std::endl;
         return 1;
     }
     
-    // Create output directory if it doesn't exist
-    if (!fs::exists(output_dir)) {
-        fs::create_directories(output_dir);
-    }
+    fs::path rr_graph_resource_dir = fs::absolute(resource_dir);
+    std::vector<std::string> circuits = {"gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
+                                            "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
+                                            "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", 
+                                            "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", "stereo_vision_stratixiv_arch_timing", 
+                                            "cholesky_mc_stratixiv_arch_timing", "directrf_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "LU230_stratixiv_arch_timing", 
+                                            "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"}; // Titan Quick Qor
+    // std::vector<std::string> circuits = {"carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", 
+    //                                         "leon2_stratixiv_arch_timing", "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", "random_stratixiv_arch_timing", 
+    //                                         "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", 
+    //                                         "ucsb_152_tap_fir_stratixiv_arch_timing", "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing", "EKF-SLAM_Jacobians_stratixiv_arch_timing"}; // Titan other
     
-    fs::path rr_graph_resource_dir = fs::absolute(vtr_run_dir);
-    std::vector<std::string> circuits;
-    
-    for (const auto& entry : fs::directory_iterator(rr_graph_resource_dir)) {
-        if (entry.is_directory()) {
-            std::string name = entry.path().filename().string();
-            size_t dot_pos = name.find('.');
-            if (dot_pos != std::string::npos) {
-                circuits.push_back(name.substr(0, dot_pos));
-            }
-        }
-    }
     
     std::vector<double> removal_rates = {0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98};
-    auto remaining_circuits_removal_rate = get_remaining_rr_graph(output_dir, circuits, removal_rates);
+    auto remaining_circuits_removal_rate = get_remaining_rr_graph(resource_dir, circuits, removal_rates);
     
     std::cout << "Remaining circuits and removal rates: ";
     for (const auto& [circuit, rate] : remaining_circuits_removal_rate) {
@@ -278,14 +270,14 @@ int main(int argc, char* argv[]) {
     std::vector<ThreadArg> thread_args;
     for (const auto& [circuit, removal_rate] : remaining_circuits_removal_rate) {
         std::cout << circuit << " " << removal_rate << std::endl;
-        fs::path rr_graph_dir = rr_graph_resource_dir / (circuit + ".blif") / "common" / "rr_graph.xml";
+        fs::path rr_graph_dir = rr_graph_resource_dir / ("rr_graph_" + circuit + ".blif") / "common" / "rr_graph.xml";
         
         if (!fs::exists(rr_graph_dir)) {
             std::cerr << "File does not exist: " << rr_graph_dir << std::endl;
             continue;
         }
         
-        thread_args.push_back({rr_graph_dir.string(), removal_rate, circuit, output_dir});
+        thread_args.push_back({rr_graph_dir.string(), removal_rate, circuit, resource_dir});
     }
     
     // Process files in parallel using thread pool
