@@ -135,7 +135,7 @@ def main():
         os.makedirs(run_dir_path, exist_ok=True)
         edge_removeal_run_dir_names.append([run_dir_path, edge_removal_rate])
         for circuit in circuits:
-            circuit_dir = os.path.join(run_dir_path, circuit, "common")
+            circuit_dir = os.path.join(run_dir_path, f"{circuit}.blif", "common")
             os.makedirs(circuit_dir, exist_ok=True)
             rr_graph_file_dir = os.path.join(args.input_dir, f"rr_graph_{circuit}_{int(edge_removal_rate * 100)}.xml")
             net_file_dir = os.path.join(args.input_dir, f"{circuit}.net")
@@ -151,7 +151,7 @@ def main():
             os.makedirs(run_dir_path, exist_ok=True)
             edge_mux_removal_run_dir_names.append([run_dir_path, edge_mux_removal_rate, mux_removal_rate])
             for circuit in circuits:
-                circuit_dir = os.path.join(run_dir_path, circuit, "common")
+                circuit_dir = os.path.join(run_dir_path, f"{circuit}.blif", "common")
                 os.makedirs(circuit_dir, exist_ok=True)
                 rr_graph_file_dir = os.path.join(args.input_dir, f"rr_graph_{circuit}_{int(edge_mux_removal_rate * 100)}_mux_{int(mux_removal_rate * 100)}.xml")
                 net_file_dir = os.path.join(args.input_dir, f"{circuit}.net")
