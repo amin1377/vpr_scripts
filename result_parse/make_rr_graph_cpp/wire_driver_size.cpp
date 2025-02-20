@@ -279,17 +279,17 @@ int main(int argc, char* argv[]) {
     auto [resource_dir, number_of_threads] = getArgs(argc, argv);
     
     // Get list of circuit directories
-    std::vector<std::string> circuits = {"gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
-                                            "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
-                                            "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", 
-                                            "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", "stereo_vision_stratixiv_arch_timing", 
-                                            "cholesky_mc_stratixiv_arch_timing", "directrf_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "LU230_stratixiv_arch_timing", 
-                                            "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"}; // Titan Quick Qor
-    // std::vector<std::string> circuits = {"carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", 
-    //                                         "leon2_stratixiv_arch_timing", "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", "random_stratixiv_arch_timing", 
-    //                                         "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", 
-    //                                         "ucsb_152_tap_fir_stratixiv_arch_timing", "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing", 
-    // "EKF-SLAM_Jacobians_stratixiv_arch_timing"}; // Titan other}
+    // std::vector<std::string> circuits = {"gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
+    //                                         "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
+    //                                         "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", 
+    //                                         "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", "stereo_vision_stratixiv_arch_timing", 
+    //                                         "cholesky_mc_stratixiv_arch_timing", "directrf_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "LU230_stratixiv_arch_timing", 
+    //                                         "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"}; // Titan Quick Qor
+    std::vector<std::string> circuits = {"carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", 
+                                            "leon2_stratixiv_arch_timing", "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", "random_stratixiv_arch_timing", 
+                                            "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", 
+                                            "ucsb_152_tap_fir_stratixiv_arch_timing", "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing", 
+                                            "EKF-SLAM_Jacobians_stratixiv_arch_timing"}; // Titan other}
     
     std::vector<std::vector<std::string>> non_existing_rr_graphs;
     std::vector<double> edge_removal_rates = {0.50, 0.65, 0.80};
@@ -302,17 +302,11 @@ int main(int argc, char* argv[]) {
             
             std::string rr_graph_name = "rr_graph_" + circuit + "_" + 
                                        std::to_string(static_cast<int>(edge_removal_rate * 100)) + ".xml";
-            std::string rr_graph_dir = resource_dir + rr_graph_name;
+            std::string rr_graph_dir = resource_dir + "/" + rr_graph_name;
             
             if (!fs::exists(rr_graph_dir)) {
+                std::cout << "RR Graph " << rr_graph_dir << " does not exist!" << std::endl;
                 non_existing_rr_graphs.push_back({circuit, std::to_string(edge_removal_rate)});
-            } else if (circuit == "directrf_stratixiv_arch_timing" ||
-                       circuit == "bitcoin_miner_stratixiv_arch_timing" ||
-                       circuit == "LU_Network_stratixiv_arch_timing" ||
-                       circuit == "mes_noc_stratixiv_arch_timing" ||
-                       circuit == "gsm_switch_stratixiv_arch_timing" ||
-                       circuit == "sparcT1_chip2_stratixiv_arch_timing") {
-                continue;
             } else {
                 thread_args.push_back({rr_graph_dir, circuit, std::to_string(edge_removal_rate), resource_dir});
             }
