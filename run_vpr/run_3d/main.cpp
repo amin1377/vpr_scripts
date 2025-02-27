@@ -206,8 +206,8 @@ int main(int argc, char* argv[]) {
     }
 
     std::string vpr_dir = params.vtr_root_dir + "/vpr/vpr";
-    std::string titan_quick_qor_dir = params.vtr_root_dir + "vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
-    std::string titan_other_dir = params.vtr_root_dir + "vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
+    std::string titan_quick_qor_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
+    std::string titan_other_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
 
     std::vector<ThreadArg> thread_args;
     for (const auto& benchmark : params.benchmarks) {
