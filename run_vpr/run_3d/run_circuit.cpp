@@ -7,6 +7,7 @@ void run_circuit(const RunCircuitArgs& args) {
     std::string net_file_dir = args.net_file_dir;
     std::string rr_graph_file_dir = args.rr_graph_file_dir;
     std::string sdc_file_dir = args.sdc_file_dir;
+    std::string benchmark_name = args.benchmark_name;
 
     // Ensure input files exist
     if (!std::filesystem::exists(arch_dir)) {
@@ -32,7 +33,24 @@ void run_circuit(const RunCircuitArgs& args) {
 
 
     // Execute VPR process
-    std::vector<std::string> vpr_args = { vpr_dir,
+    std::vector<std::string> vpr_args
+    if (benchmark_name == "titan_quick_qor") {
+        vpr_args = {vpr_dir,
+        arch_dir,
+        blif_file_dir,
+        "--route_chan_width", "300",
+        "--max_router_iterations", "400",
+        "--custom_3d_sb_fanin_fanout", "60",
+        "--router_lookahead", "map",
+        "--net_file", net_file_dir,
+        "--read_rr_graph", rr_graph_file_dir,
+        "--sdc_file", sdc_file_dir,
+        "--initial_pres_fac", "1.0",
+        "--router_profiler_astar_fac", "1.5",
+        "--seed", "3",
+        "--place", "--route", "--analysis"};
+    } else if (benchmark_name == "titan_other") {
+        vpr_args = {vpr_dir,
         arch_dir,
         blif_file_dir,
         "--route_chan_width", "300",
@@ -43,6 +61,10 @@ void run_circuit(const RunCircuitArgs& args) {
         "--read_rr_graph", rr_graph_file_dir,
         "--sdc_file", sdc_file_dir,
         "--place", "--route", "--analysis"};
+    } else {
+        std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
+        return;
+    }
 
     std::vector<char*> exec_args;
     for (auto& arg : vpr_args) {

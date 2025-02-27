@@ -56,6 +56,7 @@ struct ThreadArg {
     double mux_removal_rate;
     std::string circuit;
     std::string output_dir;
+    std::string benchmark_name;
 };
 
 bool initialize_parameters(int argc, char* argv[], Parameters& params) {
@@ -93,6 +94,7 @@ void run_circuit(const ThreadArg& thread_arg) {
     double mux_removal_rate = thread_arg.mux_removal_rate;
     std::string circuit = thread_arg.circuit;
     std::string output_dir = thread_arg.output_dir;
+    std::string benchmark_name = thread_arg.benchmark_name;
 
     if (chdir(output_dir.c_str()) != 0) {
         std::cerr << "Failed to change directory to " << output_dir << std::endl;
@@ -166,6 +168,7 @@ void run_circuit(const ThreadArg& thread_arg) {
         .net_file_dir = resource_dir + "/" + circuit + ".net",
         .rr_graph_file_dir = modified_rr_graph_name,
         .sdc_file_dir = resource_dir + "/" + circuit + ".sdc",
+        .benchmark_name = benchmark_name
     };
     run_circuit(args);
     end_time = std::chrono::high_resolution_clock::now();
@@ -226,7 +229,7 @@ int main(int argc, char* argv[]) {
                     } catch (const std::filesystem::filesystem_error& e) {
                         std::cerr << "Error creating directory: " << e.what() << std::endl;
                     }
-                    thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir});
+                    thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir, benchmark});
                 }
                 run_num++;
             }

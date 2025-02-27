@@ -17,6 +17,7 @@ struct RunCircuitArgs {
     std::string net_file_dir;
     std::string rr_graph_file_dir;
     std::string sdc_file_dir;
+    std::string benchmark_name;
 };
 
 void run_circuit(const RunCircuitArgs& args);
