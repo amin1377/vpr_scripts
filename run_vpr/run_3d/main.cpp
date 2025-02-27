@@ -14,13 +14,21 @@ namespace fs = std::filesystem;
 
 std::string architecture_name = "3d_SB_inter_die_stratixiv_arch.timing.xml";
 
+// std::vector<std::string> titan_quick_qor_circuits = {
+//     "gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
+//     "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
+//     "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", 
+//     "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", "stereo_vision_stratixiv_arch_timing", 
+//     "cholesky_mc_stratixiv_arch_timing", "directrf_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "LU230_stratixiv_arch_timing", 
+//     "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"
+// };
+
 std::vector<std::string> titan_quick_qor_circuits = {
     "gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
     "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
     "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", 
     "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", "stereo_vision_stratixiv_arch_timing", 
-    "cholesky_mc_stratixiv_arch_timing", "directrf_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "LU230_stratixiv_arch_timing", 
-    "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"
+    "cholesky_mc_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"
 };
 
 std::vector<std::string> titan_other_circuits = {
