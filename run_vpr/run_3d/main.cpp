@@ -8,7 +8,9 @@
 #include "run_circuit.h"
 #include "remove_inter_die_connection.h"
 #include "adjust_3d_driver_size.h"
+#include "analyze_rr_graph.h"
 
+namespace fs = std::filesystem;
 
 std::string architecture_name = "3d_SB_inter_die_stratixiv_arch.timing.xml";
 
@@ -21,17 +23,22 @@ std::vector<std::string> titan_quick_qor_circuits = {
     "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"
 };
 
-std::vector<std::string> titan_other_circuits = {
-    "carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "EKF-SLAM_Jacobians_stratixiv_arch_timing", 
-    "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", "leon2_stratixiv_arch_timing", 
-    "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", 
-    "random_stratixiv_arch_timing", "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", 
-    "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", "ucsb_152_tap_fir_stratixiv_arch_timing", 
-    "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
-};
+// std::vector<std::string> titan_other_circuits = {
+//     "carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "EKF-SLAM_Jacobians_stratixiv_arch_timing", 
+//     "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", "leon2_stratixiv_arch_timing", 
+//     "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", 
+//     "random_stratixiv_arch_timing", "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", 
+//     "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", "ucsb_152_tap_fir_stratixiv_arch_timing", 
+//     "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
+// };
 
-std::vector<double> edge_removal_rates = {0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
-std::vector<double> mux_removal_rates = {0, 0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
+std::vector<std::string> titan_other_circuits = {"ucsb_152_tap_fir_stratixiv_arch_timing"};
+
+// std::vector<double> edge_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
+// std::vector<double> mux_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
+
+std::vector<double> edge_removal_rates = {0, 0.5};
+std::vector<double> mux_removal_rates = {0, 0.5};
 
 
 struct Parameters {
@@ -140,6 +147,16 @@ void run_circuit(const ThreadArg& thread_arg) {
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
     std::cout << "\tDone writing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
 
+    std::cout << "\tStart analyzing " << modified_rr_graph_name << "..." << std::endl;
+    start_time = std::chrono::high_resolution_clock::now();
+    AnalyzeRRGraphArgs analyze_rr_graph_args = {
+        .rr_graph_dir = modified_rr_graph_name
+    };
+    analyze_rr_graph(analyze_rr_graph_args);
+    end_time = std::chrono::high_resolution_clock::now();
+    execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
+    std::cout << "\tDone analyzing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
+
     std::cout << "Start running VPR for " << modified_rr_graph_name << "..." << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
     RunCircuitArgs args = {
@@ -149,7 +166,6 @@ void run_circuit(const ThreadArg& thread_arg) {
         .net_file_dir = resource_dir + "/" + circuit + ".net",
         .rr_graph_file_dir = modified_rr_graph_name,
         .sdc_file_dir = resource_dir + "/" + circuit + ".sdc",
-        .circuit_dir = resource_dir + "/" + circuit
     };
     run_circuit(args);
     end_time = std::chrono::high_resolution_clock::now();
@@ -173,6 +189,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    for (const auto& benchmark : params.benchmarks) {   
+        std::cout << "Running with: " << "VTR_ROOT_DIR=" << params.vtr_root_dir << " RESOURCE_DIR=" << params.resource_dir << 
+        " BENCHMARK=" << benchmark << " NUM_THREADS=" << params.num_threads << std::endl;
+    }
+
     std::string vpr_dir = params.vtr_root_dir + "/vpr/vpr";
     std::string titan_quick_qor_dir = params.vtr_root_dir + "vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
     std::string titan_other_dir = params.vtr_root_dir + "vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
@@ -192,7 +213,9 @@ int main(int argc, char* argv[]) {
         for (const auto& edge_removal_rate : edge_removal_rates) {
             for (const auto& mux_removal_rate : mux_removal_rates) {
                 for (const auto& circuit : circuit_list) {
-                    std::string run_dir_name = std::format("run{:03}", run_num);
+                    std::ostringstream ss;
+                    ss << "run" << std::setfill('0') << std::setw(3) << run_num;
+                    std::string run_dir_name = ss.str();
                     std::string circuit_dir = run_dir + "/" + run_dir_name + "/" + architecture_name + "/" + circuit + ".blif" + "/common";
                     try {
                         if (std::filesystem::create_directories(circuit_dir)) {
@@ -211,7 +234,7 @@ int main(int argc, char* argv[]) {
     }
 
     std::vector<pid_t> active_processes;
-    for (int i = 0; i < params.num_threads; ++i) {
+    for (int i = 0; i < std::min(params.num_threads, static_cast<int>(thread_args.size())); ++i) {
         pid_t pid = fork();
         if (pid == 0) {
             run_circuit(thread_args[i]);

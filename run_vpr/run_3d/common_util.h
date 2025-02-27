@@ -10,6 +10,9 @@ struct GridLoc {
     int max_x;
     int max_y;
     int max_layer;
+
+    GridLoc(int max_x, int max_y, int max_layer) : max_x(max_x), max_y(max_y), max_layer(max_layer) {}
+    GridLoc(std::tuple<int, int, int> loc) : max_x(std::get<0>(loc)), max_y(std::get<1>(loc)), max_layer(std::get<2>(loc)) {}
 };
 
 struct NodeInfo {

@@ -5,11 +5,11 @@
 #include <vector>
 #include <string>
 #include "pugixml.hpp"
-#include "graph.h"
 #include "common_util.h"
 
 struct RemoveInterDieConnectionArgs {
-w
+    pugi::xml_document& doc;
+    double edge_removal_rate;
 };
 
 void remove_inter_die_edge(const RemoveInterDieConnectionArgs& args);

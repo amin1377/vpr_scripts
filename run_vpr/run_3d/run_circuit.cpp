@@ -7,7 +7,6 @@ void run_circuit(const RunCircuitArgs& args) {
     std::string net_file_dir = args.net_file_dir;
     std::string rr_graph_file_dir = args.rr_graph_file_dir;
     std::string sdc_file_dir = args.sdc_file_dir;
-    std::string circuit_dir = args.circuit_dir;
 
     // Ensure input files exist
     if (!std::filesystem::exists(arch_dir)) {
@@ -63,7 +62,6 @@ void run_circuit(const RunCircuitArgs& args) {
         // Parent process
         int status;
         waitpid(pid, &status, 0);
-        std::cout << circuit_dir << " is done!" << std::endl;
     } else {
         std::cerr << "Failed to fork process." << std::endl;
     }
