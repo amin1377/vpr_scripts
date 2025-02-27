@@ -156,6 +156,7 @@ void run_circuit(const ThreadArg& thread_arg) {
     end_time = std::chrono::high_resolution_clock::now();
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
     std::cout << "\tDone writing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
+    doc.reset();
 
     std::cout << "\tStart analyzing " << modified_rr_graph_name << "..." << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
