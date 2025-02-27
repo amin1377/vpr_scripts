@@ -33,7 +33,7 @@ void run_circuit(const RunCircuitArgs& args) {
 
 
     // Execute VPR process
-    std::vector<std::string> vpr_args
+    std::vector<std::string> vpr_args;
     if (benchmark_name == "titan_quick_qor") {
         vpr_args = {vpr_dir,
         arch_dir,
