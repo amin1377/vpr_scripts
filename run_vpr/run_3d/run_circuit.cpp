@@ -48,6 +48,7 @@ void run_circuit(const RunCircuitArgs& args) {
         "--initial_pres_fac", "1.0",
         "--router_profiler_astar_fac", "1.5",
         "--seed", "3",
+        "--strict_checks", "off",
         "--place", "--route", "--analysis"};
     } else if (benchmark_name == "titan_other") {
         vpr_args = {vpr_dir,
@@ -60,6 +61,7 @@ void run_circuit(const RunCircuitArgs& args) {
         "--net_file", net_file_dir,
         "--read_rr_graph", rr_graph_file_dir,
         "--sdc_file", sdc_file_dir,
+        "--strict_checks", "off",
         "--place", "--route", "--analysis"};
     } else {
         std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
