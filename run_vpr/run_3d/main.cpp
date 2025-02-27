@@ -256,7 +256,7 @@ int main(int argc, char* argv[]) {
         active_processes.erase(std::remove(active_processes.begin(), active_processes.end(), finished_pid), active_processes.end());
 
         if (active_processes.size() < params.num_threads) {
-            if (next_circuit_idx < thread_args.size()) {
+            while (next_circuit_idx < thread_args.size() && active_processes.size() < params.num_threads) {
                 pid_t pid = fork();
                 if (pid == 0) {
                     run_circuit(thread_args[next_circuit_idx]);
