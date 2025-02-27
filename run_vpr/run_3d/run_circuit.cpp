@@ -9,13 +9,6 @@ void run_circuit(const RunCircuitArgs& args) {
     std::string sdc_file_dir = args.sdc_file_dir;
     std::string circuit_dir = args.circuit_dir;
 
-    // Change working directory
-    if (chdir(circuit_dir.c_str()) != 0) {
-        std::cerr << "Failed to change directory to " << circuit_dir << std::endl;
-        return;
-    }
-    std::cout << "Running in " << circuit_dir << std::endl;
-
     // Ensure input files exist
     if (!std::filesystem::exists(arch_dir)) {
         std::cerr << "Architecture file " << arch_dir << " does not exist" << std::endl;

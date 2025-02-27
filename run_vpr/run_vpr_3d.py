@@ -7,14 +7,20 @@ import argparse
 import re
 
 architecture_name = "3d_SB_inter_die_stratixiv_arch.timing.xml"
-circuits = ["carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", \
-            "leon2_stratixiv_arch_timing", "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", "random_stratixiv_arch_timing", \
-            "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", \
-            "ucsb_152_tap_fir_stratixiv_arch_timing", "uoft_raytracer_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing", \
-            "EKF-SLAM_Jacobians_stratixiv_arch_timing"]
+# circuits = ["carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", \
+#             "leon2_stratixiv_arch_timing", "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", "random_stratixiv_arch_timing", \
+#             "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", \
+#             "ucsb_152_tap_fir_stratixiv_arch_timing", "uoft_raytracer_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing", \
+#             "EKF-SLAM_Jacobians_stratixiv_arch_timing"]
+circuits = ["mes_noc_stratixiv_arch_timing","dart_stratixiv_arch_timing","denoise_stratixiv_arch_timing","sparcT2_core_stratixiv_arch_timing", 
+"cholesky_bdti_stratixiv_arch_timing","stap_qrd_stratixiv_arch_timing","openCV_stratixiv_arch_timing","segmentation_stratixiv_arch_timing", 
+"SLAM_spheric_stratixiv_arch_timing","des90_stratixiv_arch_timing","neuron_stratixiv_arch_timing","sparcT1_core_stratixiv_arch_timing", 
+"stereo_vision_stratixiv_arch_timing","cholesky_mc_stratixiv_arch_timing"]
 edge_removal_rates = [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]
-edge_mux_removal_rates = [0.50, 0.65, 0.80]
-mux_removal_rates = [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]
+edge_mux_removal_rates = []
+mux_removal_rates = []
+#edge_mux_removal_rates = [0.50, 0.65, 0.80]
+#mux_removal_rates = [0.05, 0.10, 0.30, 0.50, 0.65, 0.80, 0.90, 0.95, 0.98]
 
 
 def run_circuit(thread_arg):
@@ -129,73 +135,77 @@ def main():
     edge_removeal_run_dir_names = []
     edge_mux_removal_run_dir_names = []
 
+    run_dir_num = 2
     for edge_removal_rate in edge_removal_rates:
-        run_dir_name = get_next_run_dir_name(args.output_dir)
+        # run_dir_name = get_next_run_dir_name(args.output_dir)
+        # run_dir_name = f"run{run_dir_num:03d}"
+        run_dir_name = f"run001"
         run_dir_path = os.path.join(args.output_dir, run_dir_name, architecture_name)
-        os.makedirs(run_dir_path, exist_ok=True)
-        edge_removeal_run_dir_names.append([run_dir_path, edge_removal_rate])
+        # os.makedirs(run_dir_path, exist_ok=True)
+        edge_removeal_run_dir_names.append([os.path.join(args.output_dir, run_dir_name), edge_removal_rate])
+        run_dir_num += 1
         for circuit in circuits:
             circuit_dir = os.path.join(run_dir_path, f"{circuit}.blif", "common")
             os.makedirs(circuit_dir, exist_ok=True)
-            rr_graph_file_dir = os.path.join(args.input_dir, f"rr_graph_{circuit}_{int(edge_removal_rate * 100)}.xml")
+            rr_graph_file_dir = os.path.join(circuit_dir, f"rr_graph.xml")
             net_file_dir = os.path.join(args.input_dir, f"{circuit}.net")
             sdc_file_dir = os.path.join(args.input_dir, f"{circuit}.sdc")
             arch_file_dir = os.path.join(args.input_dir, architecture_name)
             blif_file_dir = os.path.join(args.input_dir, f"{circuit}.blif")
-            thread_args.append((args.vpr_dir, arch_file_dir, blif_file_dir, net_file_dir, rr_graph_file_dir, sdc_file_dir, circuit_dir))
+            thread_args.append((vpr_dir, arch_file_dir, blif_file_dir, net_file_dir, rr_graph_file_dir, sdc_file_dir, circuit_dir))
     
-    for edge_mux_removal_rate in edge_mux_removal_rates:
-        for mux_removal_rate in mux_removal_rates:
-            run_dir_name = get_next_run_dir_name(args.output_dir)
-            run_dir_path = os.path.join(args.output_dir, run_dir_name, architecture_name)
-            os.makedirs(run_dir_path, exist_ok=True)
-            edge_mux_removal_run_dir_names.append([run_dir_path, edge_mux_removal_rate, mux_removal_rate])
-            for circuit in circuits:
-                circuit_dir = os.path.join(run_dir_path, f"{circuit}.blif", "common")
-                os.makedirs(circuit_dir, exist_ok=True)
-                rr_graph_file_dir = os.path.join(args.input_dir, f"rr_graph_{circuit}_{int(edge_mux_removal_rate * 100)}_mux_{int(mux_removal_rate * 100)}.xml")
-                net_file_dir = os.path.join(args.input_dir, f"{circuit}.net")
-                sdc_file_dir = os.path.join(args.input_dir, f"{circuit}.sdc")
-                arch_file_dir = os.path.join(args.input_dir, architecture_name)
-                blif_file_dir = os.path.join(args.input_dir, f"{circuit}.blif")
-                thread_args.append((args.vpr_dir, arch_file_dir, blif_file_dir, net_file_dir, rr_graph_file_dir, sdc_file_dir, circuit_dir))
+    # for edge_mux_removal_rate in edge_mux_removal_rates:
+    #     for mux_removal_rate in mux_removal_rates:
+    #         run_dir_name = get_next_run_dir_name(args.output_dir)
+    #         run_dir_path = os.path.join(args.output_dir, run_dir_name, architecture_name)
+    #         os.makedirs(run_dir_path, exist_ok=True)
+    #         edge_mux_removal_run_dir_names.append([os.path.join(args.output_dir, run_dir_name), edge_mux_removal_rate, mux_removal_rate])
+    #         for circuit in circuits:
+    #             circuit_dir = os.path.join(run_dir_path, f"{circuit}.blif", "common")
+    #             os.makedirs(circuit_dir, exist_ok=True)
+    #             rr_graph_file_dir = os.path.join(args.input_dir, f"rr_graph_{circuit}_{int(edge_mux_removal_rate * 100)}_mux_{int(mux_removal_rate * 100)}.xml")
+    #             net_file_dir = os.path.join(args.input_dir, f"{circuit}.net")
+    #             sdc_file_dir = os.path.join(args.input_dir, f"{circuit}.sdc")
+    #             arch_file_dir = os.path.join(args.input_dir, architecture_name)
+    #             blif_file_dir = os.path.join(args.input_dir, f"{circuit}.blif")
+    #             thread_args.append((args.vpr_dir, arch_file_dir, blif_file_dir, net_file_dir, rr_graph_file_dir, sdc_file_dir, circuit_dir))
     
     pool = Pool(number_of_threads)
     pool.map(run_circuit, thread_args)
     pool.close()
 
-    parse_script_path = os.path.join(args.vtr_root_dir, "vtr_flow/scripts/python_libs/vtr/parse_vtr_task.py")
-    if not os.path.exists(parse_script_path):
-        print(f"Parse script {parse_script_path} does not exist")
-        return
+    # parse_script_path = os.path.join(args.vtr_root_dir, "vtr_flow/scripts/python_libs/vtr/parse_vtr_task.py")
+    # if not os.path.exists(parse_script_path):
+    #     print(f"Parse script {parse_script_path} does not exist")
+    #     return
 
-    for run_dir, edge_removal_rate in edge_removeal_run_dir_names:
-        new_run_dir_name = get_next_run_dir_name(args.output_dir)
-        symlink_path = os.path.join(args.output_dir, new_run_dir_name)
-        os.symlink(run_dir, symlink_path)
-        print(f"Symlink created: {run_dir} → {symlink_path}")
-        subprocess.run(["python3", parse_script_path, args.output_dir], check=True)
-        parse_result_dir = os.path.join(args.output_dir, new_run_dir_name, "parse_result.txt")
-        if not os.path.exists(parse_result_dir):
-            print(f"Parse result {parse_result_dir} does not exist")
-            return
-        os.rename(parse_result_dir, os.path.join(args.output_dir, new_run_dir_name, f"parse_result_{int(edge_removal_rate * 100)}.txt"))
-        os.unlink(symlink_path)
-        print(f"Removed symlink: {symlink_path}")
+    # for run_dir, edge_removal_rate in edge_removeal_run_dir_names:
+    #     new_run_dir_name = get_next_run_dir_name(args.output_dir)
+    #     symlink_path = os.path.join(args.output_dir, new_run_dir_name)
+    #     os.symlink(run_dir, symlink_path)
+    #     print(f"Symlink created: {run_dir} → {symlink_path}")
+    #     subprocess.run(["python3", parse_script_path, args.output_dir], check=True)
+    #     parse_result_dir = os.path.join(args.output_dir, new_run_dir_name, "parse_results.txt")
+    #     if not os.path.exists(parse_result_dir):
+    #         print(f"Parse result {parse_result_dir} does not exist")
+    #         return
+    #     os.rename(parse_result_dir, os.path.join(args.output_dir, new_run_dir_name, f"parse_result_{int(edge_removal_rate * 100)}.txt"))
+    #     os.unlink(symlink_path)
+    #     print(f"Removed symlink: {symlink_path}")
     
-    for run_dir, edge_mux_removal_rate, mux_removal_rate in edge_mux_removal_run_dir_names:
-        new_run_dir_name = get_next_run_dir_name(args.output_dir)
-        symlink_path = os.path.join(args.output_dir, new_run_dir_name)
-        os.symlink(run_dir, symlink_path)
-        print(f"Symlink created: {run_dir} → {symlink_path}")
-        subprocess.run(["python3", parse_script_path, args.output_dir], check=True)
-        parse_result_dir = os.path.join(args.output_dir, new_run_dir_name, "parse_result.txt")
-        if not os.path.exists(parse_result_dir):
-            print(f"Parse result {parse_result_dir} does not exist")
-            return
-        os.rename(parse_result_dir, os.path.join(args.output_dir, new_run_dir_name, f"parse_result_{int(edge_mux_removal_rate * 100)}_mux_{int(mux_removal_rate * 100)}.txt"))
-        os.unlink(symlink_path)
-        print(f"Removed symlink: {symlink_path}")
+    # for run_dir, edge_mux_removal_rate, mux_removal_rate in edge_mux_removal_run_dir_names:
+    #     new_run_dir_name = get_next_run_dir_name(args.output_dir)
+    #     symlink_path = os.path.join(args.output_dir, new_run_dir_name)
+    #     os.symlink(run_dir, symlink_path)
+    #     print(f"Symlink created: {run_dir} → {symlink_path}")
+    #     subprocess.run(["python3", parse_script_path, args.output_dir], check=True)
+    #     parse_result_dir = os.path.join(args.output_dir, new_run_dir_name, "parse_results.txt")
+    #     if not os.path.exists(parse_result_dir):
+    #         print(f"Parse result {parse_result_dir} does not exist")
+    #         return
+    #     os.rename(parse_result_dir, os.path.join(args.output_dir, new_run_dir_name, f"parse_result_{int(edge_mux_removal_rate * 100)}_mux_{int(mux_removal_rate * 100)}.txt"))
+    #     os.unlink(symlink_path)
+    #     print(f"Removed symlink: {symlink_path}")
         
 
 
