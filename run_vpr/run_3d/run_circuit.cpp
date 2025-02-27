@@ -72,6 +72,15 @@ void run_circuit(const RunCircuitArgs& args) {
     }
     exec_args.push_back(nullptr);
 
+    int timeout;
+    if (benchmark_name == "titan_quick_qor") {
+        timeout = 18000;
+    } else if (benchmark_name == "titan_other") {
+        timeout = 7200;
+    } else {
+        std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
+        return;
+    }
     int pid = fork();
     if (pid == 0) {
         // Child process
@@ -83,7 +92,22 @@ void run_circuit(const RunCircuitArgs& args) {
     } else if (pid > 0) {
         // Parent process
         int status;
-        waitpid(pid, &status, 0);
+        time_t start_time = time(nullptr);
+        time_t end_time;
+        while (true) {
+            end_time = time(nullptr);
+            if (difftime(end_time, start_time) >= timeout) {
+                kill(pid, SIGKILL);
+                std::cerr << "RR Graph: "<< rr_graph_file_dir << "Timeout: " << timeout << " seconds" << std::endl;
+                exit(1);
+            } else {
+                auto result = waitpid(pid, &status, WNOHANG);
+                if (result == pid) {
+                    break;
+                }
+            }
+            sleep(1);
+        }
     } else {
         std::cerr << "Failed to fork process." << std::endl;
     }
