@@ -93,21 +93,12 @@ bool initialize_parameters(int argc, char* argv[], Parameters& params) {
     return true;
 }
 
-
-void run_circuit(const ThreadArg& thread_arg) {
-    std::string vpr_dir = thread_arg.vpr_dir;
-    std::string arch_name = thread_arg.arch_name;
+void make_rr_graph(const ThreadArg& thread_arg) {
     std::string resource_dir = thread_arg.resource_dir;
     double edge_removal_rate = thread_arg.edge_removal_rate;
     double mux_removal_rate = thread_arg.mux_removal_rate;
     std::string circuit = thread_arg.circuit;
     std::string output_dir = thread_arg.output_dir;
-    std::string benchmark_name = thread_arg.benchmark_name;
-
-    if (chdir(output_dir.c_str()) != 0) {
-        std::cerr << "Failed to change directory to " << output_dir << std::endl;
-        exit(1);
-    }
 
     std::string original_rr_graph_name = "rr_graph_" + circuit +".xml";
     std::string original_rr_graph_file_dir = resource_dir + "/" + original_rr_graph_name;
@@ -156,16 +147,58 @@ void run_circuit(const ThreadArg& thread_arg) {
     end_time = std::chrono::high_resolution_clock::now();
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
     std::cout << "\tDone writing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
-    doc.reset();
+}
+
+
+void run_circuit(const ThreadArg& thread_arg) {
+    std::string vpr_dir = thread_arg.vpr_dir;
+    std::string arch_name = thread_arg.arch_name;
+    std::string resource_dir = thread_arg.resource_dir;
+    double edge_removal_rate = thread_arg.edge_removal_rate;
+    double mux_removal_rate = thread_arg.mux_removal_rate;
+    std::string circuit = thread_arg.circuit;
+    std::string output_dir = thread_arg.output_dir;
+    std::string benchmark_name = thread_arg.benchmark_name;
+
+    std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
+    fs::path rr_graph_output_path = fs::path(output_dir) / modified_rr_graph_name;
+
+    if (chdir(output_dir.c_str()) != 0) {
+        std::cerr << "Failed to change directory to " << output_dir << std::endl;
+        exit(1);
+    }
+
+    if (std::filesystem::exists("vpr.out")) {
+        std::ifstream vpr_out("vpr.out");
+        if (!vpr_out) {
+            std::cerr << "Error opening vpr.out" << std::endl;
+            return;
+        }
+        std::string line;
+        bool found_vpr_statue = false;
+        while (std::getline(vpr_out, line)) {
+            if (line.find("VPR succeeded") != std::string::npos || 
+                line.find("VPR failed") != std::string::npos) {
+                found_vpr_statue = true;
+                break;
+            }
+        }
+        if (found_vpr_statue) {
+            std::cout << rr_graph_output_path << " already has a VPR result!" << std::endl;
+            return;
+        }
+    }
+
+    make_rr_graph(thread_arg);
 
     std::cout << "\tStart analyzing " << modified_rr_graph_name << "..." << std::endl;
-    start_time = std::chrono::high_resolution_clock::now();
+    auto start_time = std::chrono::high_resolution_clock::now();
     AnalyzeRRGraphArgs analyze_rr_graph_args = {
         .rr_graph_dir = modified_rr_graph_name
     };
     analyze_rr_graph(analyze_rr_graph_args);
-    end_time = std::chrono::high_resolution_clock::now();
-    execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
     std::cout << "\tDone analyzing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
 
     std::cout << "Start running VPR for " << modified_rr_graph_name << "..." << std::endl;
