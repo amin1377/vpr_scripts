@@ -23,22 +23,22 @@ std::vector<std::string> titan_quick_qor_circuits = {
     "sparcT1_chip2_stratixiv_arch_timing", "LU_Network_stratixiv_arch_timing"
 };
 
-// std::vector<std::string> titan_other_circuits = {
-//     "carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "EKF-SLAM_Jacobians_stratixiv_arch_timing", 
-//     "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", "leon2_stratixiv_arch_timing", 
-//     "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", 
-//     "random_stratixiv_arch_timing", "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", 
-//     "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", "ucsb_152_tap_fir_stratixiv_arch_timing", 
-//     "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
-// };
+std::vector<std::string> titan_other_circuits = {
+    "carpat_stratixiv_arch_timing", "CH_DFSIN_stratixiv_arch_timing", "CHERI_stratixiv_arch_timing", "EKF-SLAM_Jacobians_stratixiv_arch_timing", 
+    "fir_cascade_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", "leon2_stratixiv_arch_timing", 
+    "leon3mp_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", 
+    "random_stratixiv_arch_timing", "Reed_Solomon_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing", 
+    "sudoku_check_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", "ucsb_152_tap_fir_stratixiv_arch_timing", 
+    "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
+};
 
-std::vector<std::string> titan_other_circuits = {"ucsb_152_tap_fir_stratixiv_arch_timing"};
+// std::vector<std::string> titan_other_circuits = {"ucsb_152_tap_fir_stratixiv_arch_timing"};
 
-// std::vector<double> edge_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
-// std::vector<double> mux_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
+std::vector<double> edge_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
+std::vector<double> mux_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
 
-std::vector<double> edge_removal_rates = {0, 0.5};
-std::vector<double> mux_removal_rates = {0, 0.5};
+// std::vector<double> edge_removal_rates = {0, 0.5};
+// std::vector<double> mux_removal_rates = {0, 0.5};
 
 
 struct Parameters {
