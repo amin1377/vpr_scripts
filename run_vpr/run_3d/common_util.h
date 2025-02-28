@@ -23,4 +23,7 @@ struct NodeInfo {
 
 std::tuple<int, int, int> get_grid_loc(pugi::xml_node root_tag);
 
+double getPeakMemoryUsageMB();
+double getCurrentMemoryUsageMB();
+
 #endif

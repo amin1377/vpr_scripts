@@ -104,7 +104,8 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     std::string original_rr_graph_file_dir = resource_dir + "/" + original_rr_graph_name;
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
 
-    std::cout << "Start working on " << modified_rr_graph_name << "..." << std::endl;
+    auto curr_memory_usage = getCurrentMemoryUsageMB();
+    std::cout << "Start working on " << modified_rr_graph_name << " (" << curr_memory_usage << " MB)..." << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
     pugi::xml_document doc;
@@ -115,9 +116,13 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     }
     auto end_time = std::chrono::high_resolution_clock::now();
     auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
-    std::cout << "\tParsing " << original_rr_graph_name << " is done (" << execution_time << " seconds)!" << std::endl;
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    auto peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Parsing " << original_rr_graph_name << " is done (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
     start_time = std::chrono::high_resolution_clock::now();
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Removing inter-die connections (" << curr_memory_usage << " MB)..." << std::endl;
     RemoveInterDieConnectionArgs remove_inter_die_connection_args = {
         .doc = doc,
         .edge_removal_rate = edge_removal_rate
@@ -125,9 +130,13 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     remove_inter_die_edge(remove_inter_die_connection_args);
     end_time = std::chrono::high_resolution_clock::now();
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
-    std::cout << "\t" << modified_rr_graph_name << " removing inter-die connections is done (" << execution_time << " seconds)!" << std::endl;
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") removing inter-die connections is done (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
     start_time = std::chrono::high_resolution_clock::now();
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Adjusting fan-in/out (" << curr_memory_usage << " MB)..." << std::endl;
     AdjustFanInOutArgs adjust_fan_in_out_args = {
         .doc = doc,
         .mux_removal_rate = mux_removal_rate
@@ -135,9 +144,11 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     adjust_fan_in_out(adjust_fan_in_out_args);
     end_time = std::chrono::high_resolution_clock::now();
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
-    std::cout << "\t" << modified_rr_graph_name << " adjusting fan-in/out is done (" << execution_time << " seconds)!" << std::endl;
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") adjusting fan-in/out is done (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
-    std::cout << "\tStart writing " << modified_rr_graph_name << std::endl;
+    std::cout << "\t (" << modified_rr_graph_name << ") Start writing " << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
     fs::path rr_graph_output_path = fs::path(output_dir) / modified_rr_graph_name;
     bool save_result = doc.save_file(rr_graph_output_path.string().c_str());
@@ -146,7 +157,9 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     }
     end_time = std::chrono::high_resolution_clock::now();
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
-    std::cout << "\tDone writing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Done writing (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 }
 
 
@@ -189,9 +202,15 @@ void run_circuit(const ThreadArg& thread_arg) {
         }
     }
 
+    auto curr_memory_usage = getCurrentMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Start making " << " (" << curr_memory_usage << " MB)..." << std::endl;
     make_rr_graph(thread_arg);
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    auto peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Done making (" << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
-    std::cout << "\tStart analyzing " << modified_rr_graph_name << "..." << std::endl;
+
+    std::cout << "\t (" << modified_rr_graph_name << ") Start analyzing " << " (" << curr_memory_usage << " MB)..." << std::endl;
     auto start_time = std::chrono::high_resolution_clock::now();
     AnalyzeRRGraphArgs analyze_rr_graph_args = {
         .rr_graph_dir = modified_rr_graph_name
@@ -199,9 +218,11 @@ void run_circuit(const ThreadArg& thread_arg) {
     analyze_rr_graph(analyze_rr_graph_args);
     auto end_time = std::chrono::high_resolution_clock::now();
     auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
-    std::cout << "\tDone analyzing " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Done analyzing (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
-    std::cout << "Start running VPR for " << modified_rr_graph_name << "..." << std::endl;
+    std::cout << "\t (" << modified_rr_graph_name << ") Start running VPR " << " (" << curr_memory_usage << " MB)..." << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
     RunCircuitArgs args = {
         .vpr_dir = vpr_dir,
@@ -215,7 +236,9 @@ void run_circuit(const ThreadArg& thread_arg) {
     run_circuit(args);
     end_time = std::chrono::high_resolution_clock::now();
     execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
-    std::cout << "Done running VPR for " << modified_rr_graph_name << " (" << execution_time << " seconds)!" << std::endl;
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    peak_memory_usage = getPeakMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Done running VPR (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
     try {
         if (std::filesystem::remove(rr_graph_output_path)) {
