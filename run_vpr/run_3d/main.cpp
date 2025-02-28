@@ -40,13 +40,13 @@ std::vector<std::string> titan_other_circuits = {
     "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
 };
 
-// std::vector<std::string> titan_other_circuits = {"ucsb_152_tap_fir_stratixiv_arch_timing"};
+// std::vector<std::string> titan_quick_qor_circuits = {"mes_noc_stratixiv_arch_timing"};
 
 std::vector<double> edge_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
 std::vector<double> mux_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
 
-// std::vector<double> edge_removal_rates = {0, 0.5};
-// std::vector<double> mux_removal_rates = {0, 0.5};
+// std::vector<double> edge_removal_rates = {0.5};
+// std::vector<double> mux_removal_rates = {0.5};
 
 
 struct Parameters {
@@ -105,7 +105,7 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
 
     auto curr_memory_usage = getCurrentMemoryUsageMB();
-    std::cout << "Start working on " << modified_rr_graph_name << " (" << curr_memory_usage << " MB)..." << std::endl;
+    std::cout << "\t (" << modified_rr_graph_name << ") Start parsing " << " (" << curr_memory_usage << " MB)..." << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
     pugi::xml_document doc;
@@ -118,7 +118,7 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
     curr_memory_usage = getCurrentMemoryUsageMB();
     auto peak_memory_usage = getPeakMemoryUsageMB();
-    std::cout << "\t (" << modified_rr_graph_name << ") Parsing " << original_rr_graph_name << " is done (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
+    std::cout << "\t (" << modified_rr_graph_name << ") Parsing is done (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
     start_time = std::chrono::high_resolution_clock::now();
     curr_memory_usage = getCurrentMemoryUsageMB();
@@ -148,8 +148,9 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     peak_memory_usage = getPeakMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") adjusting fan-in/out is done (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
 
-    std::cout << "\t (" << modified_rr_graph_name << ") Start writing " << std::endl;
     start_time = std::chrono::high_resolution_clock::now();
+    curr_memory_usage = getCurrentMemoryUsageMB();
+    std::cout << "\t (" << modified_rr_graph_name << ") Writing " << " (" << curr_memory_usage << " MB)..." << std::endl;
     fs::path rr_graph_output_path = fs::path(output_dir) / modified_rr_graph_name;
     bool save_result = doc.save_file(rr_graph_output_path.string().c_str());
     if (!save_result) {
@@ -175,6 +176,8 @@ void run_circuit(const ThreadArg& thread_arg) {
 
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
     fs::path rr_graph_output_path = fs::path(output_dir) / modified_rr_graph_name;
+
+    std::cout << "Start working on " << modified_rr_graph_name << std::endl;
 
     if (chdir(output_dir.c_str()) != 0) {
         std::cerr << "Failed to change directory to " << output_dir << std::endl;

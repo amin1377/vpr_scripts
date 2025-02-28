@@ -1,7 +1,5 @@
 #include "adjust_3d_driver_size.h"
 
-namespace fs = std::filesystem;
-
 // Main function to adjust fan-in/fan-out
 void adjust_fan_in_out(const AdjustFanInOutArgs& args) {
     pugi::xml_document& doc = args.doc;
