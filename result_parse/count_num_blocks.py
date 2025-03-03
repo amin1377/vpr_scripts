@@ -1,6 +1,43 @@
 import os
 import argparse
 import csv
+import xml.etree.ElementTree as ET
+import re
+
+def extract_block_data(xml_file, circuit_name):
+    """Extracts block names and their types from the VPR netlist XML file."""
+    def clean_instance(instance):
+        """Removes [number] from instance name"""
+        return re.sub(r'\[\d+\]', '', instance)
+
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
+    
+    # Find the block with name="[circuit_name].blif"
+    target_name = f"{circuit_name}.blif"
+    top_block = None
+
+    for block in root.findall(".//block"):
+        if block.get("name") == target_name:
+            top_block = block
+            break
+    
+    assert top_block is not None, f"No block found with name: {target_name}"
+
+
+    # Iterate over its immediate child <block> elements
+    block_map = {}
+    type_map = {}
+    for child in top_block.findall("block"):
+        block_name = child.get("name")
+        block_type = clean_instance(child.get("instance", ""))
+        assert block_name not in block_map, f"Duplicate block name: {block_name}"
+        block_map[block_name] = block_type
+        if block_type not in type_map:
+            type_map[block_type] = []
+        type_map[block_type].append(block_name)
+        
+    return block_map, type_map
 
 def count_blocks_by_layer(file_path):
     blocks_by_layer = {0:0, 1:0}
