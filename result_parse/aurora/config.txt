@@ -1,0 +1,17 @@
+# VPR Packing Metrics
+num_io_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+io
+num_clb_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+clb
+num_bram_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+bram
+num_dsp_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+dsp
+
+#VPR Placement Metrics
+total_swaps;placement.rpt;Swaps called\s*:\s*(\d+)
+accepted_swap;placement.rpt;\s*Swaps accepted\s*:\s*(\d+).*
+rejected_swap;placement.rpt;\s*Swaps rejected\s*:\s*(\d+).*
+aborted_swap;placement.rpt;\s*Swaps aborted\s*:\s*(\d+).*
+
+
+#VPR Routing Metrics
+critical_path_delay;routing.rpt;Final critical path delay \(least slack\): (.*) ns
+total_heap_pushes;routing.rpt;Router Stats: .*total_heap_pushes: (\d+) .*
+total_heap_pops;routing.rpt;Router Stats: .*total_heap_pops: (\d+)
