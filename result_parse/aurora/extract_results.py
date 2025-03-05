@@ -16,6 +16,7 @@ def parse_config_file(config_filename):
             parts = line.split(";")
             if len(parts) == 3:
                 metric_name, output_file, regex_pattern = parts
+                print(f"Metic Name: {metric_name} - Regex pattern: {regex_pattern}")
                 config_entries[output_file.strip()].append((metric_name.strip(), regex_pattern.strip()))
 
     return config_entries
@@ -25,11 +26,15 @@ def extract_metrics(config_entries, task_dir, metrics_map):
     """Processes each output file once and extracts multiple metrics."""
 
     for output_file, metric_patterns in config_entries.items():
+        for metric_name, regex_pattern in metric_patterns:
+            metrics_map[metric_name] = 0
+
+    for output_file, metric_patterns in config_entries.items():
         try:
             with open(os.path.join(task_dir, output_file), "r") as file:
                 for line in file:
                     for metric_name, regex_pattern in metric_patterns:
-                        match = re.search(regex_pattern, line)
+                        match = re.search(regex_pattern, line.strip())
                         if match:
                             metrics_map[metric_name] = match.group(1).strip()
         except FileNotFoundError:
@@ -49,6 +54,7 @@ def getArgs():
 
 def main():
     args = getArgs()
+    config_entries = parse_config_file(args.config_file)
 
     table_data = []
     for idx, subdir in enumerate(os.listdir(args.task_dir)):
@@ -56,7 +62,6 @@ def main():
             print(f"Processing {subdir}")
             circuit_name = subdir
             circuit_dir = os.path.join(args.task_dir, circuit_name, circuit_name)
-            config_entries = parse_config_file(args.config_file)
             metrics_map = {}
             metrics_map["circuit"] = circuit_name
             extract_metrics(config_entries, circuit_dir, metrics_map)

@@ -1,8 +1,10 @@
 # VPR Packing Metrics
-num_io_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+io
-num_clb_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+clb
-num_bram_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+bram
-num_dsp_blocks;packing.rpt;Netlist\s+\n\s+(\d+)\s+blocks of type:\s+dsp
+num_io_blocks;packing.rpt;^io\s*:\s*(\d+)$
+num_clb_blocks;packing.rpt;^clb\s*:\s*(\d+)$
+num_bram_blocks;packing.rpt;^bram\s*:\s*(\d+)$
+num_dsp_blocks;packing.rpt;^dsp\s*:\s*(\d+)$
+num_ble5_blocks;packing.rpt;^ble5\s*:\s*(\d+)$
+num_ble6_blocks;packing.rpt;^ble6\s*:\s*(\d+)$
 
 #VPR Placement Metrics
 total_swaps;placement.rpt;Swaps called\s*:\s*(\d+)
