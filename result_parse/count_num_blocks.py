@@ -3,6 +3,24 @@ import argparse
 import csv
 import xml.etree.ElementTree as ET
 import re
+import pandas as pd
+import numpy as np
+
+CIRCUITS = ["carpat_stratixiv_arch_timing.blif", "JPEG_stratixiv_arch_timing.blif", "picosoc_stratixiv_arch_timing.blif", "sudoku_check_stratixiv_arch_timing.blif", \
+            "CH_DFSIN_stratixiv_arch_timing.blif", "leon2_stratixiv_arch_timing.blif", "radar20_stratixiv_arch_timing.blif", "SURF_desc_stratixiv_arch_timing.blif", \
+            "CHERI_stratixiv_arch_timing.blif", "leon3mp_stratixiv_arch_timing.blif", "random_stratixiv_arch_timing.blif", "ucsb_152_tap_fir_stratixiv_arch_timing.blif", \
+            "EKF-SLAM_Jacobians_stratixiv_arch_timing.blif", "MCML_stratixiv_arch_timing.blif", "Reed_Solomon_stratixiv_arch_timing.blif", \
+            "uoft_raytracer_stratixiv_arch_timing.blif", "fir_cascade_stratixiv_arch_timing.blif", "MMM_stratixiv_arch_timing.blif", "smithwaterman_stratixiv_arch_timing.blif", \
+            "wb_conmax_stratixiv_arch_timing.blif", "jacobi_stratixiv_arch_timing.blif", "murax_stratixiv_arch_timing.blif", "stap_steering_stratixiv_arch_timing.blif"]
+BLOCK_TYPES = ["LAB", "DSP", "M9K", "M144K", "io", "PLL"]
+
+def get_run_dirs(base_dir):
+    """Finds all subdirectories matching 'runXXX' (starting from run002)."""
+    run_dirs = sorted(
+        [d for d in os.listdir(base_dir) if re.match(r"run\d{3}$", d)],
+        key=lambda x: int(x[3:])  # Sort numerically (run002, run003, ...)
+    )
+    return [d for d in run_dirs if int(d[3:]) >= 2]  # Ignore run001
 
 def extract_block_data(net_file, circuit_name):
     """Extracts block names and their types from the VPR netlist XML file."""
@@ -38,7 +56,7 @@ def count_blocks_by_layer(circuit_name, run_dir):
 
     block_map, type_map = extract_block_data(net_file_path, circuit_name)
 
-    for type in type_map.keys():
+    for type in BLOCK_TYPES:
         blocks_type_layer[type] = [0, 0]
 
     with open(place_file_path, 'r') as file:
@@ -59,28 +77,26 @@ def count_blocks_by_layer(circuit_name, run_dir):
             block_type = block_map[block_name]
             blocks_type_layer[block_type][layer_num] += 1
 
-    return list(type_map.keys()), blocks_type_layer
+    return blocks_type_layer
 
-def main(directory, out_file_name):
+def get_run_data(directory):
     circuit_block_type_layer = {}
-    block_types = set()
     data = []
     data.append(["Circuit", "Layer #0", "Layer #1"])
-    for subdir in os.listdir(directory):
+    for idx, subdir in enumerate(os.listdir(directory)):
         circuit_name = subdir[:-5]
         subdir_path = os.path.join(directory, subdir, "common")
         if os.path.isdir(subdir_path):
-            print(f"Processing {circuit_name}")
-            curr_block_types, blocks_type_layer = count_blocks_by_layer(circuit_name, subdir_path)
-            block_types.update(curr_block_types)
-            circuit_block_type_layer[circuit_name] = blocks_type_layer        
+            print(f"\tProcessing {circuit_name}")
+            blocks_type_layer = count_blocks_by_layer(circuit_name, subdir_path)
+            circuit_block_type_layer[circuit_name] = blocks_type_layer
+            # if idx >= 1:
+            #     break
         else:
-            print(f"Couldn't find {subdir_path}")
+            print(f"\tCouldn't find {subdir_path}")
     
-    print(block_types)
-    print(circuit_block_type_layer)
 
-    num_block_types = len(block_types)
+    num_block_types = len(BLOCK_TYPES)
     row = []
     table_data = []
     row.append("")
@@ -95,7 +111,7 @@ def main(directory, out_file_name):
     row = []
     row.append("Circuit")
     for _ in [0, 1]:
-        for block_type in block_types:
+        for block_type in BLOCK_TYPES:
             row.append(block_type)
     table_data.append(row)
 
@@ -104,22 +120,20 @@ def main(directory, out_file_name):
         row.append(circuit_name)
         circuit_num_blocks = circuit_block_type_layer[circuit_name]
         total_num_block_per_type = {}
-        for block_type in block_types:
+        for block_type in BLOCK_TYPES:
             if block_type not in circuit_num_blocks:
                 total_num_block_per_type[block_type] = 0
             else:
                 total_num_block_per_type[block_type] = circuit_num_blocks[block_type][0] + circuit_num_blocks[block_type][1]
         for layer_num in [0, 1]:
-            for block_type in block_types:
-                if block_type not in circuit_num_blocks:
+            for block_type in BLOCK_TYPES:
+                if block_type not in circuit_num_blocks or total_num_block_per_type[block_type] == 0:
                     row.append(0)
                 else:
-                    row.append(f"{circuit_num_blocks[block_type][layer_num]}/{total_num_block_per_type[block_type]:.2f}")
+                    row.append(f"{circuit_num_blocks[block_type][layer_num]/total_num_block_per_type[block_type]:.2f}")
         table_data.append(row)
 
-    with open(out_file_name, "w") as csv_file:
-        csv_writer = csv.writer(csv_file, delimiter="\t")
-        csv_writer.writerows(table_data)
+    return table_data
 
 def getArgs():
     parser = argparse.ArgumentParser()
@@ -128,6 +142,68 @@ def getArgs():
 
     args = parser.parse_args()
     return args
+
+def get_average_table_data(run_dir_table_data):
+    """Computes element-wise average of all numerical columns, preserving headers and circuit names from the first table."""
+    
+    # Extract all tables as lists
+    table_list = list(run_dir_table_data.values())
+    print(table_list)
+    if not table_list:
+        return []
+
+    # Use the first table as a reference for headers & circuit names
+    reference_table = table_list[0]
+    num_rows = len(reference_table)
+    num_cols = len(reference_table[0])
+
+    # Initialize sum and count arrays for numerical values
+    sum_array = np.zeros((num_rows, num_cols), dtype=float)
+    count_array = np.zeros((num_rows, num_cols), dtype=int)
+
+    # Process each table for numerical values (excluding first two rows and first column)
+    for table in table_list:
+        for r in range(2, num_rows):  # Start from 3rd row
+            for c in range(1, num_cols):  # Start from 2nd column
+                try:
+                    value = float(table[r][c])  # Convert to float
+                    sum_array[r][c] += value
+                    count_array[r][c] += 1
+                except ValueError:
+                    pass  # Ignore non-numeric values
+
+    # Compute averages (avoid division by zero)
+    avg_array = np.divide(sum_array, count_array, out=np.zeros_like(sum_array), where=count_array != 0)
+
+    # Construct the final averaged table (copy headers and circuit names from first table)
+    final_table = [row[:] for row in reference_table]  # Deep copy reference table
+
+    # Insert the averaged values into the final table
+    for r in range(2, num_rows):
+        for c in range(1, num_cols):
+            final_table[r][c] = f"{avg_array[r][c]:.2f}"
+
+    return final_table
+
+def main(task_dir, out_file_name):
+    run_dirs = get_run_dirs(task_dir)
+    run_dir_table_data = {}
+    for idx, run_dir_name in enumerate(run_dirs):
+        print(f"Processing {run_dir_name}")
+        run_dir = os.path.join(task_dir, run_dir_name, "3d_SB_inter_die_stratixiv_arch.timing.xml")
+        table_data = get_run_data(run_dir)
+        run_dir_table_data[run_dir_name] = table_data
+        # if idx >= 1:
+        #     break
+    
+    run_dir_table_data["avg"] = get_average_table_data(run_dir_table_data)
+
+    for run_dir_name, table_data in run_dir_table_data.items():
+        run_dir_table_data[run_dir_name] = pd.DataFrame(table_data[1:], columns=table_data[0])
+    with pd.ExcelWriter(out_file_name, engine="xlsxwriter") as writer:
+        for run_dir_name, table_data in run_dir_table_data.items():
+            table_data.to_excel(writer, sheet_name=run_dir_name, index=False)
+    print(f"Saved to {out_file_name}")
 
 if __name__ == "__main__":
     args = getArgs()
