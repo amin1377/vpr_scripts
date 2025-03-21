@@ -25,8 +25,8 @@ def process_subdirectory(subdir, input_dir, output_dir):
         # Copy files if they exist
         for file in [blif_file, net_file, sdc_file]:
             assert os.path.exists(file), f"File {file} does not exist"
-            shutil.copy(file, output_dir)
-            print(f"Copied {file} → {output_dir}")
+            os.symlink(file, os.path.join(output_dir, os.path.basename(file)))
+            print(f"Linked {file} → {output_dir}")
 
         # Copy and rename rr_graph.xml
         assert os.path.exists(rr_graph_file), f"File {rr_graph_file} does not exist"
