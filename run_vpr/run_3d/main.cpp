@@ -40,7 +40,7 @@ std::vector<std::string> titan_other_circuits = {
 
 std::vector<std::string> koios_circuits = {
     "clstm_like.large", "clstm_like.medium", "dla_like.medium", "proxy.7", "clstm_like.small", "tpu_like.large.ws", "tpu_like.large.os",
-    "bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer", "attention_layer",
+    "bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer",
     "tpu_like.small.ws", "softmax", "tdarknet_like.large", "robot_rl", "bwave_like.fixed.small", "lenet", "eltwise_layer", "reduction_layer", "conv_layer_hls", "spmv"
 };
 
@@ -60,7 +60,6 @@ std::unordered_map<std::string, std::string> koios_arch_map = {
 	{"proxy.5", "2x2"},
 	{"bwave_like.fixed.large", "2x2"},
 	{"conv_layer", "2x1"},
-	{"attention_layer", "2x1"},
 	{"tpu_like.small.ws", "1x1"},
 	{"softmax", "2x1"},
 	{"tdarknet_like.large", "2x2"},
@@ -129,7 +128,7 @@ bool initialize_parameters(int argc, char* argv[], Parameters& params) {
     return true;
 }
 
-void make_rr_graph(const ThreadArg& thread_arg) {
+bool make_rr_graph(const ThreadArg& thread_arg) {
     std::string resource_dir = thread_arg.resource_dir;
     double edge_removal_rate = thread_arg.edge_removal_rate;
     double mux_removal_rate = thread_arg.mux_removal_rate;
@@ -138,6 +137,10 @@ void make_rr_graph(const ThreadArg& thread_arg) {
 
     std::string original_rr_graph_name = "rr_graph_" + circuit +".xml";
     std::string original_rr_graph_file_dir = resource_dir + "/" + original_rr_graph_name;
+    if (!std::filesystem::exists(original_rr_graph_file_dir)) {
+        std::cerr << "Original RR graph file " << original_rr_graph_file_dir << " does not exist" << std::endl;
+        return false;
+    }
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
 
     auto curr_memory_usage = getCurrentMemoryUsageMB();
@@ -148,7 +151,7 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     pugi::xml_parse_result result = doc.load_file(original_rr_graph_file_dir.c_str());
     if (!result) {
         std::cerr << "XML parsing error: " << result.description() << std::endl;
-        return;
+        return false;
     }
     auto end_time = std::chrono::high_resolution_clock::now();
     auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
@@ -197,6 +200,7 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     curr_memory_usage = getCurrentMemoryUsageMB();
     peak_memory_usage = getPeakMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") Done writing (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
+    return true;
 }
 
 
@@ -244,7 +248,10 @@ void run_circuit(const ThreadArg& thread_arg) {
 
     auto curr_memory_usage = getCurrentMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") Start making " << " (" << curr_memory_usage << " MB)..." << std::endl;
-    make_rr_graph(thread_arg);
+    if (!make_rr_graph(thread_arg)) {
+        std::cerr << "(" << modified_rr_graph_name << ") Failed to make RR graph" << std::endl;
+        return;
+    }
     curr_memory_usage = getCurrentMemoryUsageMB();
     auto peak_memory_usage = getPeakMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") Done making (" << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;

@@ -100,6 +100,8 @@ void run_circuit(const RunCircuitArgs& args) {
         timeout = 18000;
     } else if (benchmark_name == "titan_other") {
         timeout = 7200;
+    } else if (benchmark_name == "koios") {
+        timeout = 18000;
     } else {
         std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
         return;
