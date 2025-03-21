@@ -6,12 +6,18 @@ import re
 import pandas as pd
 import numpy as np
 
-CIRCUITS = ["carpat_stratixiv_arch_timing.blif", "JPEG_stratixiv_arch_timing.blif", "picosoc_stratixiv_arch_timing.blif", "sudoku_check_stratixiv_arch_timing.blif", \
-            "CH_DFSIN_stratixiv_arch_timing.blif", "leon2_stratixiv_arch_timing.blif", "radar20_stratixiv_arch_timing.blif", "SURF_desc_stratixiv_arch_timing.blif", \
-            "CHERI_stratixiv_arch_timing.blif", "leon3mp_stratixiv_arch_timing.blif", "random_stratixiv_arch_timing.blif", "ucsb_152_tap_fir_stratixiv_arch_timing.blif", \
-            "EKF-SLAM_Jacobians_stratixiv_arch_timing.blif", "MCML_stratixiv_arch_timing.blif", "Reed_Solomon_stratixiv_arch_timing.blif", \
-            "uoft_raytracer_stratixiv_arch_timing.blif", "fir_cascade_stratixiv_arch_timing.blif", "MMM_stratixiv_arch_timing.blif", "smithwaterman_stratixiv_arch_timing.blif", \
-            "wb_conmax_stratixiv_arch_timing.blif", "jacobi_stratixiv_arch_timing.blif", "murax_stratixiv_arch_timing.blif", "stap_steering_stratixiv_arch_timing.blif"]
+# CIRCUITS = ["carpat_stratixiv_arch_timing", "JPEG_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "sudoku_check_stratixiv_arch_timing", \
+#             "CH_DFSIN_stratixiv_arch_timing", "leon2_stratixiv_arch_timing", "radar20_stratixiv_arch_timing", "SURF_desc_stratixiv_arch_timing", \
+#             "CHERI_stratixiv_arch_timing", "leon3mp_stratixiv_arch_timing", "random_stratixiv_arch_timing", "ucsb_152_tap_fir_stratixiv_arch_timing", \
+#             "EKF-SLAM_Jacobians_stratixiv_arch_timing", "MCML_stratixiv_arch_timing", "Reed_Solomon_stratixiv_arch_timing", \
+#             "uoft_raytracer_stratixiv_arch_timing", "fir_cascade_stratixiv_arch_timing", "MMM_stratixiv_arch_timing", "smithwaterman_stratixiv_arch_timing", \
+#             "wb_conmax_stratixiv_arch_timing", "jacobi_stratixiv_arch_timing", "murax_stratixiv_arch_timing", "stap_steering_stratixiv_arch_timing"]
+CIRCUITS = ["gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", \
+            "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", \
+            "openCV_stratixiv_arch_timing", "bitonic_mesh_stratixiv_arch_timing", "segmentation_stratixiv_arch_timing", "SLAM_spheric_stratixiv_arch_timing", \
+            "des90_stratixiv_arch_timing", "neuron_stratixiv_arch_timing", "sparcT1_core_stratixiv_arch_timing", "stereo_vision_stratixiv_arch_timing", \
+            "cholesky_mc_stratixiv_arch_timing", "bitcoin_miner_stratixiv_arch_timing", "sparcT1_chip2_stratixiv_arch_timing", \
+            "LU_Network_stratixiv_arch_timing"]
 BLOCK_TYPES = ["LAB", "DSP", "M9K", "M144K", "io", "PLL"]
 
 def get_run_dirs(base_dir):
@@ -83,9 +89,8 @@ def get_run_data(directory):
     circuit_block_type_layer = {}
     data = []
     data.append(["Circuit", "Layer #0", "Layer #1"])
-    for idx, subdir in enumerate(os.listdir(directory)):
-        circuit_name = subdir[:-5]
-        subdir_path = os.path.join(directory, subdir, "common")
+    for idx, circuit_name in enumerate(CIRCUITS):
+        subdir_path = os.path.join(directory, f"{circuit_name}.blif", "common")
         if os.path.isdir(subdir_path):
             print(f"\tProcessing {circuit_name}")
             blocks_type_layer = count_blocks_by_layer(circuit_name, subdir_path)
@@ -122,7 +127,7 @@ def get_run_data(directory):
         total_num_block_per_type = {}
         for block_type in BLOCK_TYPES:
             if block_type not in circuit_num_blocks:
-                total_num_block_per_type[block_type] = 0
+                total_num_block_per_type[block_type] = 0.0
             else:
                 total_num_block_per_type[block_type] = circuit_num_blocks[block_type][0] + circuit_num_blocks[block_type][1]
         for layer_num in [0, 1]:
