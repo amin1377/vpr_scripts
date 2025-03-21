@@ -209,7 +209,8 @@ void run_circuit(const ThreadArg& thread_arg) {
     std::string circuit = thread_arg.circuit;
     std::string output_dir = thread_arg.output_dir;
     std::string benchmark_name = thread_arg.benchmark_name;
-
+    std::string device_name = thread_arg.device_name;
+    
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
     fs::path rr_graph_output_path = fs::path(output_dir) / modified_rr_graph_name;
 
@@ -270,7 +271,8 @@ void run_circuit(const ThreadArg& thread_arg) {
         .net_file_dir = resource_dir + "/" + circuit + ".net",
         .rr_graph_file_dir = modified_rr_graph_name,
         .sdc_file_dir = resource_dir + "/" + circuit + ".sdc",
-        .benchmark_name = benchmark_name
+        .benchmark_name = benchmark_name,
+        .device_name = device_name
     };
     run_circuit(args);
     end_time = std::chrono::high_resolution_clock::now();
