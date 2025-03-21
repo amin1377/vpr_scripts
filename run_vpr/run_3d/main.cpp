@@ -12,8 +12,6 @@
 
 namespace fs = std::filesystem;
 
-std::string architecture_name = "3d_SB_inter_die_stratixiv_arch.timing.xml";
-
 // std::vector<std::string> titan_quick_qor_circuits = {
 //     "gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
 //     "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
@@ -89,6 +87,7 @@ struct Parameters {
     std::string resource_dir;
     std::vector<std::string> benchmarks;
     int num_threads;
+    std::string architecture_name;
 };
 
 struct ThreadArg {
@@ -116,6 +115,7 @@ bool initialize_parameters(int argc, char* argv[], Parameters& params) {
             }
         }
         else if (arg == "--num_threads" && i + 1 < args.size()) params.num_threads = std::stoi(args[++i]);
+        else if (arg == "--architecture" && i + 1 < args.size()) params.architecture_name = args[++i];
         else {
             std::cerr << "Unknown argument: " << arg << "\n";
             return false;
@@ -307,6 +307,7 @@ int main(int argc, char* argv[]) {
     std::string titan_quick_qor_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
     std::string titan_other_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
     std::string koios_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_koios_auto_bb";
+    std::string architecture_name = params.architecture_name;
 
     std::vector<ThreadArg> thread_args;
     for (const auto& benchmark : params.benchmarks) {
