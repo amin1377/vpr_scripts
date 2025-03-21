@@ -86,7 +86,7 @@ def run_circuit(thread_arg):
                      "60",
                      "--pack",
                      "--write_rr_graph",
-                     f"{circuit_name}_rr_graph.xml"],
+                     f"rr_graph_{circuit_name}.xml"],
                     stdout=PIPE, 
                     stderr=PIPE)
     stdout, stderr = process.communicate()
