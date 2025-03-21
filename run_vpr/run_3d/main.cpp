@@ -40,6 +40,41 @@ std::vector<std::string> titan_other_circuits = {
     "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
 };
 
+std::vector<std::string> koios_circuits = {
+    "clstm_like.large", "clstm_like.medium", "dla_like.medium", "proxy.7", "clstm_like.small", "tpu_like.large.ws", "tpu_like.large.os",
+    "bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer", "attention_layer",
+    "tpu_like.small.ws", "softmax", "tdarknet_like.large", "robot_rl", "bwave_like.fixed.small", "lenet", "eltwise_layer", "reduction_layer", "conv_layer_hls", "spmv"
+};
+
+std::unordered_map<std::string, std::string> koios_arch_map = {
+    {"clstm_like.large", "4_4"},
+	{"clstm_like.medium", "4_2"},
+	{"dla_like.medium", "4_2"},
+	{"proxy.7", "4_2"},
+	{"clstm_like.small", "2_2"},
+	{"tpu_like.large.ws", "4_2"},
+	{"tpu_like.large.os", "4_2"},
+	{"bnn", "2_2"},
+	{"dla_like.small", "2_2"},
+	{"dnnweaver", "4_2"},
+	{"deepfreeze.style3", "2_2"},
+	{"lstm", "2_2"},
+	{"proxy.5", "2_2"},
+	{"bwave_like.fixed.large", "2_2"},
+	{"conv_layer", "2_1"},
+	{"attention_layer", "2_1"},
+	{"tpu_like.small.ws", "1_1"},
+	{"softmax", "2_1"},
+	{"tdarknet_like.large", "2_2"},
+	{"robot_rl", "1_1"},
+	{"bwave_like.fixed.small", "2_1"},
+	{"lenet", "2_1"},
+	{"eltwise_layer", "1_1"},
+	{"reduction_layer", "1_1"},
+	{"conv_layer_hls", "2_2"},
+	{"spmv", "2_1"}
+};
+
 // std::vector<std::string> titan_quick_qor_circuits = {"mes_noc_stratixiv_arch_timing"};
 
 std::vector<double> edge_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
