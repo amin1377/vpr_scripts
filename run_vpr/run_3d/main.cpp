@@ -47,32 +47,32 @@ std::vector<std::string> koios_circuits = {
 };
 
 std::unordered_map<std::string, std::string> koios_arch_map = {
-    {"clstm_like.large", "4_4"},
-	{"clstm_like.medium", "4_2"},
-	{"dla_like.medium", "4_2"},
-	{"proxy.7", "4_2"},
-	{"clstm_like.small", "2_2"},
-	{"tpu_like.large.ws", "4_2"},
-	{"tpu_like.large.os", "4_2"},
-	{"bnn", "2_2"},
-	{"dla_like.small", "2_2"},
-	{"dnnweaver", "4_2"},
-	{"deepfreeze.style3", "2_2"},
-	{"lstm", "2_2"},
-	{"proxy.5", "2_2"},
-	{"bwave_like.fixed.large", "2_2"},
-	{"conv_layer", "2_1"},
-	{"attention_layer", "2_1"},
-	{"tpu_like.small.ws", "1_1"},
-	{"softmax", "2_1"},
-	{"tdarknet_like.large", "2_2"},
-	{"robot_rl", "1_1"},
-	{"bwave_like.fixed.small", "2_1"},
-	{"lenet", "2_1"},
-	{"eltwise_layer", "1_1"},
-	{"reduction_layer", "1_1"},
-	{"conv_layer_hls", "2_2"},
-	{"spmv", "2_1"}
+    {"clstm_like.large", "4x4"},
+	{"clstm_like.medium", "4x2"},
+	{"dla_like.medium", "4x2"},
+	{"proxy.7", "4x2"},
+	{"clstm_like.small", "2x2"},
+	{"tpu_like.large.ws", "4x2"},
+	{"tpu_like.large.os", "4x2"},
+	{"bnn", "2x2"},
+	{"dla_like.small", "2x2"},
+	{"dnnweaver", "4x2"},
+	{"deepfreeze.style3", "2x2"},
+	{"lstm", "2x2"},
+	{"proxy.5", "2x2"},
+	{"bwave_like.fixed.large", "2x2"},
+	{"conv_layer", "2x1"},
+	{"attention_layer", "2x1"},
+	{"tpu_like.small.ws", "1x1"},
+	{"softmax", "2x1"},
+	{"tdarknet_like.large", "2x2"},
+	{"robot_rl", "1x1"},
+	{"bwave_like.fixed.small", "2x1"},
+	{"lenet", "2x1"},
+	{"eltwise_layer", "1x1"},
+	{"reduction_layer", "1x1"},
+	{"conv_layer_hls", "2x2"},
+	{"spmv", "2x1"}
 };
 
 // std::vector<std::string> titan_quick_qor_circuits = {"mes_noc_stratixiv_arch_timing"};
@@ -100,6 +100,7 @@ struct ThreadArg {
     std::string circuit;
     std::string output_dir;
     std::string benchmark_name;
+    std::string device_name;
 };
 
 bool initialize_parameters(int argc, char* argv[], Parameters& params) {
@@ -303,6 +304,7 @@ int main(int argc, char* argv[]) {
     std::string vpr_dir = params.vtr_root_dir + "/vpr/vpr";
     std::string titan_quick_qor_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
     std::string titan_other_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
+    std::string koios_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_koios_auto_bb";
 
     std::vector<ThreadArg> thread_args;
     for (const auto& benchmark : params.benchmarks) {
@@ -314,6 +316,9 @@ int main(int argc, char* argv[]) {
         } else if (benchmark == "titan_other") {
             run_dir = titan_other_dir;
             circuit_list = titan_other_circuits;
+        } else if (benchmark == "koios") {
+            run_dir = koios_dir;
+            circuit_list = koios_circuits;
         }
         int run_num = 2;
         for (const auto& edge_removal_rate : edge_removal_rates) {
@@ -332,7 +337,8 @@ int main(int argc, char* argv[]) {
                     } catch (const std::filesystem::filesystem_error& e) {
                         std::cerr << "Error creating directory: " << e.what() << std::endl;
                     }
-                    thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir, benchmark});
+                    std::string device_name = (benchmark == "koios") ? koios_arch_map[circuit] : "";
+                    thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir, benchmark, device_name});
                 }
                 run_num++;
             }

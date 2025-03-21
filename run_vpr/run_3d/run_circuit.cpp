@@ -8,6 +8,7 @@ void run_circuit(const RunCircuitArgs& args) {
     std::string rr_graph_file_dir = args.rr_graph_file_dir;
     std::string sdc_file_dir = args.sdc_file_dir;
     std::string benchmark_name = args.benchmark_name;
+    std::string device_name = args.device_name;
 
     // Ensure input files exist
     if (!std::filesystem::exists(arch_dir)) {
@@ -63,6 +64,18 @@ void run_circuit(const RunCircuitArgs& args) {
         "--sdc_file", sdc_file_dir,
         "--verify_file_digests", "off",
         "--place", "--route", "--analysis"};
+    } else if (benchmark_name == "koios") {
+        vpr_args = {vpr_dir,
+                     arch_dir,
+                     blif_file_dir,
+                     "--device", device_name,
+                     "--route_chan_width", "320",
+                     "--max_router_iterations", "200",
+                     "--net_file", net_file_dir,
+                     "--read_rr_graph", rr_graph_file_dir,
+                     "--verify_file_digests", "off",
+                     "--custom_3d_sb_fanin_fanout", "60",
+                     "--place", "--route", "--analysis"};
     } else {
         std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
         return;
