@@ -8,6 +8,7 @@ void run_circuit(const RunCircuitArgs& args) {
     std::string rr_graph_file_dir = args.rr_graph_file_dir;
     std::string sdc_file_dir = args.sdc_file_dir;
     std::string benchmark_name = args.benchmark_name;
+    std::string device_name = args.device_name;
 
     // Ensure input files exist
     if (!std::filesystem::exists(arch_dir)) {
@@ -26,15 +27,15 @@ void run_circuit(const RunCircuitArgs& args) {
         std::cerr << "RR graph file " << rr_graph_file_dir << " does not exist" << std::endl;
         return;
     }
-    if (!std::filesystem::exists(sdc_file_dir)) {
-        std::cerr << "SDC file " << sdc_file_dir << " does not exist" << std::endl;
-        return;
-    }
 
 
     // Execute VPR process
     std::vector<std::string> vpr_args;
     if (benchmark_name == "titan_quick_qor") {
+        if (!std::filesystem::exists(sdc_file_dir)) {
+            std::cerr << "SDC file " << sdc_file_dir << " does not exist" << std::endl;
+            return;
+        }
         vpr_args = {vpr_dir,
         arch_dir,
         blif_file_dir,
@@ -51,6 +52,10 @@ void run_circuit(const RunCircuitArgs& args) {
         "--verify_file_digests", "off",
         "--place", "--route", "--analysis"};
     } else if (benchmark_name == "titan_other") {
+        if (!std::filesystem::exists(sdc_file_dir)) {
+            std::cerr << "SDC file " << sdc_file_dir << " does not exist" << std::endl;
+            return;
+        }
         vpr_args = {vpr_dir,
         arch_dir,
         blif_file_dir,
@@ -62,6 +67,22 @@ void run_circuit(const RunCircuitArgs& args) {
         "--read_rr_graph", rr_graph_file_dir,
         "--sdc_file", sdc_file_dir,
         "--verify_file_digests", "off",
+        "--place", "--route", "--analysis"};
+    } else if (benchmark_name == "koios") {
+        if (device_name.empty()) {
+            std::cerr << "Device name is empty for benchmark " << benchmark_name << std::endl;
+            return;
+        }
+        vpr_args = {vpr_dir,
+        arch_dir,
+        blif_file_dir,
+        "--device", device_name,
+        "--route_chan_width", "320",
+        "--max_router_iterations", "200",
+        "--net_file", net_file_dir,
+        "--read_rr_graph", rr_graph_file_dir,
+        "--verify_file_digests", "off",
+        "--custom_3d_sb_fanin_fanout", "60",
         "--place", "--route", "--analysis"};
     } else {
         std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
@@ -79,6 +100,8 @@ void run_circuit(const RunCircuitArgs& args) {
         timeout = 18000;
     } else if (benchmark_name == "titan_other") {
         timeout = 7200;
+    } else if (benchmark_name == "koios") {
+        timeout = 18000;
     } else {
         std::cerr << "Invalid benchmark name: " << benchmark_name << std::endl;
         return;

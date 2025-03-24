@@ -12,8 +12,6 @@
 
 namespace fs = std::filesystem;
 
-std::string architecture_name = "3d_SB_inter_die_stratixiv_arch.timing.xml";
-
 // std::vector<std::string> titan_quick_qor_circuits = {
 //     "gsm_switch_stratixiv_arch_timing", "mes_noc_stratixiv_arch_timing", "dart_stratixiv_arch_timing", "denoise_stratixiv_arch_timing", 
 //     "sparcT2_core_stratixiv_arch_timing", "cholesky_bdti_stratixiv_arch_timing", "minres_stratixiv_arch_timing", "stap_qrd_stratixiv_arch_timing", 
@@ -40,6 +38,40 @@ std::vector<std::string> titan_other_circuits = {
     "uoft_raytracer_stratixiv_arch_timing", "wb_conmax_stratixiv_arch_timing", "picosoc_stratixiv_arch_timing", "murax_stratixiv_arch_timing"
 };
 
+std::vector<std::string> koios_circuits = {
+    "clstm_like.large", "clstm_like.medium", "dla_like.medium", "proxy.7", "clstm_like.small", "tpu_like.large.ws", "tpu_like.large.os",
+    "bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer",
+    "tpu_like.small.ws", "softmax", "tdarknet_like.large", "robot_rl", "bwave_like.fixed.small", "lenet", "eltwise_layer", "reduction_layer", "conv_layer_hls", "spmv"
+};
+
+std::unordered_map<std::string, std::string> koios_arch_map = {
+    {"clstm_like.large", "4x4"},
+	{"clstm_like.medium", "4x2"},
+	{"dla_like.medium", "4x2"},
+	{"proxy.7", "4x2"},
+	{"clstm_like.small", "2x2"},
+	{"tpu_like.large.ws", "4x2"},
+	{"tpu_like.large.os", "4x2"},
+	{"bnn", "2x2"},
+	{"dla_like.small", "2x2"},
+	{"dnnweaver", "4x2"},
+	{"deepfreeze.style3", "2x2"},
+	{"lstm", "2x2"},
+	{"proxy.5", "2x2"},
+	{"bwave_like.fixed.large", "2x2"},
+	{"conv_layer", "2x1"},
+	{"tpu_like.small.ws", "1x1"},
+	{"softmax", "2x1"},
+	{"tdarknet_like.large", "2x2"},
+	{"robot_rl", "1x1"},
+	{"bwave_like.fixed.small", "2x1"},
+	{"lenet", "2x1"},
+	{"eltwise_layer", "1x1"},
+	{"reduction_layer", "1x1"},
+	{"conv_layer_hls", "2x2"},
+	{"spmv", "2x1"}
+};
+
 // std::vector<std::string> titan_quick_qor_circuits = {"mes_noc_stratixiv_arch_timing"};
 
 std::vector<double> edge_removal_rates = {0, 0.3, 0.5, 0.6, 0.7, 0.8, 0.9};
@@ -54,6 +86,7 @@ struct Parameters {
     std::string resource_dir;
     std::vector<std::string> benchmarks;
     int num_threads;
+    std::string architecture_name;
 };
 
 struct ThreadArg {
@@ -65,6 +98,7 @@ struct ThreadArg {
     std::string circuit;
     std::string output_dir;
     std::string benchmark_name;
+    std::string device_name;
 };
 
 bool initialize_parameters(int argc, char* argv[], Parameters& params) {
@@ -80,6 +114,7 @@ bool initialize_parameters(int argc, char* argv[], Parameters& params) {
             }
         }
         else if (arg == "--num_threads" && i + 1 < args.size()) params.num_threads = std::stoi(args[++i]);
+        else if (arg == "--architecture" && i + 1 < args.size()) params.architecture_name = args[++i];
         else {
             std::cerr << "Unknown argument: " << arg << "\n";
             return false;
@@ -93,7 +128,7 @@ bool initialize_parameters(int argc, char* argv[], Parameters& params) {
     return true;
 }
 
-void make_rr_graph(const ThreadArg& thread_arg) {
+bool make_rr_graph(const ThreadArg& thread_arg) {
     std::string resource_dir = thread_arg.resource_dir;
     double edge_removal_rate = thread_arg.edge_removal_rate;
     double mux_removal_rate = thread_arg.mux_removal_rate;
@@ -102,6 +137,10 @@ void make_rr_graph(const ThreadArg& thread_arg) {
 
     std::string original_rr_graph_name = "rr_graph_" + circuit +".xml";
     std::string original_rr_graph_file_dir = resource_dir + "/" + original_rr_graph_name;
+    if (!std::filesystem::exists(original_rr_graph_file_dir)) {
+        std::cerr << "Original RR graph file " << original_rr_graph_file_dir << " does not exist" << std::endl;
+        return false;
+    }
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
 
     auto curr_memory_usage = getCurrentMemoryUsageMB();
@@ -112,7 +151,7 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     pugi::xml_parse_result result = doc.load_file(original_rr_graph_file_dir.c_str());
     if (!result) {
         std::cerr << "XML parsing error: " << result.description() << std::endl;
-        return;
+        return false;
     }
     auto end_time = std::chrono::high_resolution_clock::now();
     auto execution_time = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count() / 1000000.0;
@@ -161,6 +200,7 @@ void make_rr_graph(const ThreadArg& thread_arg) {
     curr_memory_usage = getCurrentMemoryUsageMB();
     peak_memory_usage = getPeakMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") Done writing (" << execution_time << " seconds, " << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
+    return true;
 }
 
 
@@ -173,7 +213,8 @@ void run_circuit(const ThreadArg& thread_arg) {
     std::string circuit = thread_arg.circuit;
     std::string output_dir = thread_arg.output_dir;
     std::string benchmark_name = thread_arg.benchmark_name;
-
+    std::string device_name = thread_arg.device_name;
+    
     std::string modified_rr_graph_name = "rr_graph_" + circuit + "_" + std::to_string(static_cast<int>(edge_removal_rate * 100)) + "_" + std::to_string(static_cast<int>(mux_removal_rate * 100)) + ".xml";
     fs::path rr_graph_output_path = fs::path(output_dir) / modified_rr_graph_name;
 
@@ -207,7 +248,10 @@ void run_circuit(const ThreadArg& thread_arg) {
 
     auto curr_memory_usage = getCurrentMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") Start making " << " (" << curr_memory_usage << " MB)..." << std::endl;
-    make_rr_graph(thread_arg);
+    if (!make_rr_graph(thread_arg)) {
+        std::cerr << "(" << modified_rr_graph_name << ") Failed to make RR graph" << std::endl;
+        return;
+    }
     curr_memory_usage = getCurrentMemoryUsageMB();
     auto peak_memory_usage = getPeakMemoryUsageMB();
     std::cout << "\t (" << modified_rr_graph_name << ") Done making (" << curr_memory_usage << " MB, " << peak_memory_usage << " MB)!" << std::endl;
@@ -234,7 +278,8 @@ void run_circuit(const ThreadArg& thread_arg) {
         .net_file_dir = resource_dir + "/" + circuit + ".net",
         .rr_graph_file_dir = modified_rr_graph_name,
         .sdc_file_dir = resource_dir + "/" + circuit + ".sdc",
-        .benchmark_name = benchmark_name
+        .benchmark_name = benchmark_name,
+        .device_name = device_name
     };
     run_circuit(args);
     end_time = std::chrono::high_resolution_clock::now();
@@ -268,6 +313,8 @@ int main(int argc, char* argv[]) {
     std::string vpr_dir = params.vtr_root_dir + "/vpr/vpr";
     std::string titan_quick_qor_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
     std::string titan_other_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
+    std::string koios_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_koios_auto_bb";
+    std::string architecture_name = params.architecture_name;
 
     std::vector<ThreadArg> thread_args;
     for (const auto& benchmark : params.benchmarks) {
@@ -279,6 +326,9 @@ int main(int argc, char* argv[]) {
         } else if (benchmark == "titan_other") {
             run_dir = titan_other_dir;
             circuit_list = titan_other_circuits;
+        } else if (benchmark == "koios") {
+            run_dir = koios_dir;
+            circuit_list = koios_circuits;
         }
         int run_num = 2;
         for (const auto& edge_removal_rate : edge_removal_rates) {
@@ -297,7 +347,8 @@ int main(int argc, char* argv[]) {
                     } catch (const std::filesystem::filesystem_error& e) {
                         std::cerr << "Error creating directory: " << e.what() << std::endl;
                     }
-                    thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir, benchmark});
+                    std::string device_name = (benchmark == "koios") ? koios_arch_map[circuit] : "";
+                    thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir, benchmark, device_name});
                 }
                 run_num++;
             }
