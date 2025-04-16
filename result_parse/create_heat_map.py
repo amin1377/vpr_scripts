@@ -4,12 +4,13 @@ import matplotlib.pyplot as plt
 # Load data from CSV
 data = np.loadtxt("mux_avg_new.csv", delimiter=',')
 
-# Flip vertically so that y=0 is at the bottom
-data = np.flipud(data)
-
 # Set extent: [x_min, x_max, y_min, y_max]
 num_x = data.shape[1]
 num_y = data.shape[0]
+
+for x in range(num_x):
+    for y in range(num_y):
+        print(f"x {x} y {y} size {data[y][x]}")
 
 plt.imshow(
     data,
