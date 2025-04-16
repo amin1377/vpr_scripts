@@ -27,7 +27,7 @@ def extract_metrics(config_entries, task_dir, metrics_map):
 
     for output_file, metric_patterns in config_entries.items():
         for metric_name, regex_pattern in metric_patterns:
-            metrics_map[metric_name] = 0
+            metrics_map[metric_name] = -1
 
     for output_file, metric_patterns in config_entries.items():
         try:
