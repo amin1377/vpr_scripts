@@ -11,6 +11,8 @@ total_swaps;placement.rpt;Swaps called\s*:\s*(\d+)
 accepted_swap;placement.rpt;\s*Swaps accepted\s*:\s*(\d+).*
 rejected_swap;placement.rpt;\s*Swaps rejected\s*:\s*(\d+).*
 aborted_swap;placement.rpt;\s*Swaps aborted\s*:\s*(\d+).*
+initial_placement_wire_length;placement.rpt;Initial placement cost: .* bb_cost: (.*) td_cost: .*
+initial_placement_cpd;placement.rpt;Initial placement estimated Critical Path Delay \(CPD\):\s*(.*)\s*ns
 
 
 #VPR Routing Metrics
