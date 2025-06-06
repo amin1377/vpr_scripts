@@ -1,0 +1,6 @@
+# Ignore object & executable files
+*.o
+*.out
+
+# Ignore .vscode
+.vscode
