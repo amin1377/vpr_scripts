@@ -351,7 +351,12 @@ int main(int argc, char* argv[]) {
                     } catch (const std::filesystem::filesystem_error& e) {
                         std::cerr << "Error creating directory: " << e.what() << std::endl;
                     }
-                    std::string device_name = (benchmark == "koios") ? koios_arch_map[circuit] : "";
+                    std::string device_name;
+                    if (benchmark == "koios") {
+                        device_name = "sector_" + koios_arch_map[circuit];
+                    } else {
+                        device_name = "";
+                    }
                     thread_args.push_back({vpr_dir, architecture_name, params.resource_dir, edge_removal_rate, mux_removal_rate, circuit, circuit_dir, benchmark, device_name});
                 }
                 run_num++;
