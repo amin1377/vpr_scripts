@@ -17,7 +17,8 @@
 #include <cstdlib>
 #include <ctime>
 #include <tuple>
-#include <pugixml.hpp>
+
+#include "pugixml.hpp"
 #include "common_util.h"
 
 struct AdjustFanInOutArgs {

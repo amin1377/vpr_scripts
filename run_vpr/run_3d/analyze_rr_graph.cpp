@@ -1,4 +1,3 @@
-#include <pugixml.hpp>
 #include <iostream>
 #include <unordered_set>
 #include <string>
@@ -8,6 +7,8 @@
 #include <cassert>
 #include <cstdlib>
 #include <fstream>
+
+#include "pugixml.hpp"
 #include "analyze_rr_graph.h"
 #include "common_util.h"
 

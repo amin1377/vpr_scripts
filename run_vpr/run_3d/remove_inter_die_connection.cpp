@@ -1,6 +1,8 @@
 #include <unordered_map>
 #include <random>
 #include <iostream>
+#include <algorithm>
+
 #include "remove_inter_die_connection.h"
 
 
@@ -19,14 +21,14 @@ void remove_inter_die_edge(const RemoveInterDieConnectionArgs& args) {
     for (pugi::xml_node node_tag : rr_node_tag.children()) {
         int node_id = node_tag.attribute("id").as_int();
         pugi::xml_node loc_tag = node_tag.child("loc");
-        
-        std::tuple<int, int, int> loc_high(
+        NodeInfo node_info;
+        node_info.high_location = std::make_tuple(
             loc_tag.attribute("xhigh").as_int(),
             loc_tag.attribute("yhigh").as_int(),
             loc_tag.attribute("layer").as_int()
         );
-                
-        nodes[node_id] = {loc_high};
+        
+        nodes[node_id] = node_info;
     }
 
     // 3D grid to store edges between different layers
@@ -62,7 +64,7 @@ void remove_inter_die_edge(const RemoveInterDieConnectionArgs& args) {
         for (int y = 0; y <= grid_loc.max_y; y++) {
             for (int l = 0; l <= grid_loc.max_layer; l++) {
                 auto& edges = grid_3d_edge_tag[l][x][y];
-                int num_elem = static_cast<int>(edges.size() * edge_removal_rate);
+                size_t num_elem = static_cast<size_t>(edges.size() * edge_removal_rate);
                 
                 if (num_elem > 0 && !edges.empty()) {
                     std::vector<int> indices(edges.size());
@@ -72,7 +74,7 @@ void remove_inter_die_edge(const RemoveInterDieConnectionArgs& args) {
                     
                     std::shuffle(indices.begin(), indices.end(), gen);
                     
-                    for (int i = 0; i < num_elem && i < indices.size(); i++) {
+                    for (size_t i = 0; i < num_elem && i < indices.size(); i++) {
                         edges_to_remove.push_back(edges[indices[i]]);
                     }
                 }

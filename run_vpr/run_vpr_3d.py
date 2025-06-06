@@ -10,33 +10,63 @@ circuits = ["clstm_like.large", "clstm_like.medium", "dla_like.medium", "proxy.7
 			"bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer", "attention_layer", \
 			"tpu_like.small.ws", "softmax", "tdarknet_like.large", "robot_rl", "bwave_like.fixed.small", "lenet", "eltwise_layer", "reduction_layer", "conv_layer_hls", "spmv"]
 
+
+circuit_2d_arch_map = {
+	"clstm_like.large": "5_5",
+	"clstm_like.medium": "4_4",
+	"dla_like.medium": "4_4",
+	"proxy.7": "4_4",
+	"clstm_like.small": "3_3",
+	"tpu_like.large.ws": "4_4",
+	"tpu_like.large.os": "4_4",
+	"bnn": "3_3",
+	"dla_like.small": "3_3",
+	"dnnweaver": "4_4",
+	"deepfreeze.style3": "3_3",
+	"lstm": "3_3",
+	"proxy.5": "3_3",
+	"bwave_like.fixed.large": "3_3",
+	"conv_layer": "2_2",
+	"attention_layer": "2_2",
+	"tpu_like.small.ws": "1_1",
+	"softmax": "2_2",
+	"tdarknet_like.large": "3_3",
+	"robot_rl": "1_1",
+	"bwave_like.fixed.small": "2_2",
+	"lenet": "2_2",
+	"eltwise_layer": "1_1",
+	"reduction_layer": "1_1",
+	"conv_layer_hls": "3_3",
+	"spmv": "2_2"
+}
+
 circuit_3d_arch_map = {
-	"clstm_like.large": "4x4",
-	"clstm_like.medium": "4x2",
-	"dla_like.medium": "4x2",
-	"proxy.7": "4x2",
-	"clstm_like.small": "2x2",
-	"tpu_like.large.ws": "4x2",
-	"tpu_like.large.os": "4x2",
-	"bnn": "2x2",
-	"dla_like.small": "2x2",
-	"dnnweaver": "4x2",
-	"deepfreeze.style3": "2x2",
-	"lstm": "2x2",
-	"proxy.5": "2x2",
-	"bwave_like.fixed.large": "2x2",
-	"conv_layer": "2x1",
-	"attention_layer": "2x1",
-	"tpu_like.small.ws": "1x1",
-	"softmax": "2x1",
-	"tdarknet_like.large": "2x2",
-	"robot_rl": "1x1",
-	"bwave_like.fixed.small": "2x1",
-	"lenet": "2x1",
-	"eltwise_layer": "1x1",
-	"reduction_layer": "1x1",
-	"conv_layer_hls": "2x2",
-	"spmv": "2x1"
+	"clstm_like.large": "4_4",
+	"clstm_like.medium": "4_2",
+	"dla_like.medium": "4_2",
+	"proxy.7": "4_2",
+	"clstm_like.small": "2_2",
+	"tpu_like.large.ws": "4_2",
+	"tpu_like.large.os": "4_2",
+	"bnn": "2_2",
+	"dla_like.small": "2_2",
+	"dnnweaver": "4_2",
+	"deepfreeze.style3": "2_2",
+	"lstm": "2_2",
+	"proxy.5": "2_2",
+	"bwave_like.fixed.large": "2_2",
+	"conv_layer": "2_1",
+	"attention_layer": "2_1",
+	"tpu_like.small.ws": "1_1",
+	"softmax": "2_1",
+	"tdarknet_like.large": "2_2",
+	"robot_rl": "1_1",
+	"bwave_like.fixed.small": "2_1",
+	"lenet": "2_1",
+	"eltwise_layer": "1_1",
+	"reduction_layer": "1_1",
+	"conv_layer_hls": "2_2",
+	"spmv": "2_1"
 }
 
 def run_circuit(thread_arg):
@@ -46,6 +76,7 @@ def run_circuit(thread_arg):
     blif_file_dir = thread_arg[3]
     net_file_dir = thread_arg[4]
     circuit_dir = thread_arg[5]
+    multi_die = thread_arg[6]
 
     os.chdir(circuit_dir)
     print(f"Running in {circuit_dir}")
@@ -66,29 +97,31 @@ def run_circuit(thread_arg):
     os.symlink(blif_file_dir, os.path.basename(blif_file_dir))
     os.symlink(net_file_dir, os.path.basename(net_file_dir))
 
+    command = [vpr_dir,
+                arch_dir,
+                blif_file_dir,
+                "--route_chan_width",
+                "320",
+                "--max_router_iterations",
+                "400",
+                "--strict_checks",
+                "off",
+                "--verify_file_digests",
+                "off",
+                "--write_rr_graph",
+                f"rr_graph_{circuit_name}.xml"]
+    if multi_die:
+        command.append("--device")
+        command.append(f"sector_{circuit_3d_arch_map[circuit_name]}")
+        command.append("--custom_3d_sb_fanin_fanout")
+        command.append("60")
+    else:
+        command.append("--device")
+        command.append(f"sector_{circuit_2d_arch_map[circuit_name]}")
 
-    process = Popen([vpr_dir,
-                     arch_dir,
-                     blif_file_dir,
-                     "--device",
-                     circuit_3d_arch_map[circuit_name],
-                     "--route_chan_width",
-                     "320",
-                     "--max_router_iterations",
-                     "200",
-                     "--net_file",
-                     os.path.basename(net_file_dir),
-                     "--strict_checks",
-                     "off",
-                     "--verify_file_digests",
-                     "off",
-                     "--custom_3d_sb_fanin_fanout",
-                     "60",
-                     "--pack",
-                     "--write_rr_graph",
-                     f"rr_graph_{circuit_name}.xml"],
-                    stdout=PIPE, 
-                    stderr=PIPE)
+    process = Popen(command,
+                stdout=PIPE, 
+                stderr=PIPE)
     stdout, stderr = process.communicate()
     
     f = open("vpr.out", "w")
@@ -107,11 +140,12 @@ def main():
     parser.add_argument("--input_dir", help="Path to the input directory")
     parser.add_argument("--output_dir", help="Path to the output directory")
     parser.add_argument("--architecture_name", help="Architecture name")
+    parser.add_argument("--multi_die", help="Multi die", action="store_true")
     parser.add_argument("-j", help="Number of threads to use")
     args = parser.parse_args()
     number_of_threads = int(args.j)
     architecture_name = args.architecture_name
-
+    multi_die = args.multi_die
     vpr_dir = os.path.join(args.vtr_root_dir, "vpr", "vpr")
     if not os.path.exists(vpr_dir):
         print(f"VPR executable {vpr_dir} does not exist")
@@ -127,7 +161,7 @@ def main():
         net_file_dir = os.path.join(args.input_dir, f"{circuit}.net")
         arch_file_dir = os.path.join(args.input_dir, architecture_name)
         blif_file_dir = os.path.join(args.input_dir, f"{circuit}.pre-vpr.blif")
-        thread_args.append((vpr_dir, circuit, arch_file_dir, blif_file_dir, net_file_dir, circuit_dir))
+        thread_args.append((vpr_dir, circuit, arch_file_dir, blif_file_dir, net_file_dir, circuit_dir, multi_die))
     
     pool = Pool(number_of_threads)
     pool.map(run_circuit, thread_args)

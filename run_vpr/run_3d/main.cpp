@@ -40,7 +40,7 @@ std::vector<std::string> titan_other_circuits = {
 
 std::vector<std::string> koios_circuits = {
     "clstm_like.large", "clstm_like.medium", "dla_like.medium", "proxy.7", "clstm_like.small", "tpu_like.large.ws", "tpu_like.large.os",
-    "bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer",
+    "bnn", "dla_like.small", "dnnweaver", "deepfreeze.style3", "lstm", "proxy.5", "bwave_like.fixed.large", "conv_layer", "attention_layer",
     "tpu_like.small.ws", "softmax", "tdarknet_like.large", "robot_rl", "bwave_like.fixed.small", "lenet", "eltwise_layer", "reduction_layer", "conv_layer_hls", "spmv"
 };
 
@@ -60,6 +60,7 @@ std::unordered_map<std::string, std::string> koios_arch_map = {
 	{"proxy.5", "2x2"},
 	{"bwave_like.fixed.large", "2x2"},
 	{"conv_layer", "2x1"},
+    {"attention_layer", "2x1"},
 	{"tpu_like.small.ws", "1x1"},
 	{"softmax", "2x1"},
 	{"tdarknet_like.large", "2x2"},
@@ -87,6 +88,7 @@ struct Parameters {
     std::vector<std::string> benchmarks;
     int num_threads;
     std::string architecture_name;
+    std::string output_dir;
 };
 
 struct ThreadArg {
@@ -115,6 +117,7 @@ bool initialize_parameters(int argc, char* argv[], Parameters& params) {
         }
         else if (arg == "--num_threads" && i + 1 < args.size()) params.num_threads = std::stoi(args[++i]);
         else if (arg == "--architecture" && i + 1 < args.size()) params.architecture_name = args[++i];
+        else if (arg == "--output_dir" && i + 1 < args.size()) params.output_dir = args[++i];
         else {
             std::cerr << "Unknown argument: " << arg << "\n";
             return false;
@@ -274,8 +277,8 @@ void run_circuit(const ThreadArg& thread_arg) {
     RunCircuitArgs args = {
         .vpr_dir = vpr_dir,
         .arch_dir = resource_dir + "/" + arch_name,
-        .blif_file_dir = resource_dir + "/" + circuit + ".blif",
-        .net_file_dir = resource_dir + "/" + circuit + ".net",
+        .blif_file_dir = resource_dir + "/" + circuit + ".pre-vpr.blif",
+        .net_file_dir = resource_dir + "/" + circuit + ".pre-vpr.net",
         .rr_graph_file_dir = modified_rr_graph_name,
         .sdc_file_dir = resource_dir + "/" + circuit + ".sdc",
         .benchmark_name = benchmark_name,
@@ -311,26 +314,27 @@ int main(int argc, char* argv[]) {
     }
 
     std::string vpr_dir = params.vtr_root_dir + "/vpr/vpr";
-    std::string titan_quick_qor_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
-    std::string titan_other_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
-    std::string koios_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_koios_auto_bb";
+    // std::string titan_quick_qor_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_quick_qor_auto_bb";
+    // std::string titan_other_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_titan_other_auto_bb";
+    // std::string koios_dir = params.vtr_root_dir + "/vtr_flow/tasks/regression_tests/vtr_reg_nightly_test7/3d_sb_koios_auto_bb";
     std::string architecture_name = params.architecture_name;
+    std::string output_dir = params.output_dir;
 
     std::vector<ThreadArg> thread_args;
     for (const auto& benchmark : params.benchmarks) {
-        std::string run_dir;
+        std::string run_dir = output_dir;
         std::vector<std::string> circuit_list;
-        if (benchmark == "titan_quick_qor") {
-            run_dir = titan_quick_qor_dir;
+        // if (benchmark == "titan_quick_qor") {
+        //     run_dir = titan_quick_qor_dir;
             circuit_list = titan_quick_qor_circuits;
-        } else if (benchmark == "titan_other") {
-            run_dir = titan_other_dir;
+        // } else if (benchmark == "titan_other") {
+        //     run_dir = titan_other_dir;
             circuit_list = titan_other_circuits;
-        } else if (benchmark == "koios") {
-            run_dir = koios_dir;
+        // } else if (benchmark == "koios") {
+        //     run_dir = koios_dir;
             circuit_list = koios_circuits;
-        }
-        int run_num = 2;
+        // }
+        int run_num = 3;
         for (const auto& edge_removal_rate : edge_removal_rates) {
             for (const auto& mux_removal_rate : mux_removal_rates) {
                 for (const auto& circuit : circuit_list) {
@@ -374,8 +378,8 @@ int main(int argc, char* argv[]) {
         pid_t finished_pid = wait(&status);
         active_processes.erase(std::remove(active_processes.begin(), active_processes.end(), finished_pid), active_processes.end());
 
-        if (active_processes.size() < params.num_threads) {
-            while (next_circuit_idx < thread_args.size() && active_processes.size() < params.num_threads) {
+        if (static_cast<int>(active_processes.size()) < params.num_threads) {
+            while (next_circuit_idx < thread_args.size() && static_cast<int>(active_processes.size()) < params.num_threads) {
                 pid_t pid = fork();
                 if (pid == 0) {
                     run_circuit(thread_args[next_circuit_idx]);

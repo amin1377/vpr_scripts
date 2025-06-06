@@ -109,8 +109,14 @@ void run_circuit(const RunCircuitArgs& args) {
     int pid = fork();
     if (pid == 0) {
         // Child process
-        freopen("vpr.out", "w", stdout);
-        freopen("vpr_err.out", "w", stderr);
+        if (freopen("vpr.out", "w", stdout) == nullptr) {
+            std::cerr << "Failed to open vpr.out" << std::endl;
+            exit(1);
+        }
+        if (freopen("vpr_err.out", "w", stderr) == nullptr) {
+            std::cerr << "Failed to open vpr_err.out" << std::endl;
+            exit(1);
+        }
         execvp(exec_args[0], exec_args.data());
         perror("execvp failed");
         exit(1);
