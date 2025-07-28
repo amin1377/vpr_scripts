@@ -16,7 +16,7 @@ def parse_config_file(config_filename):
             parts = line.split(";")
             if len(parts) == 3:
                 metric_name, output_file, regex_pattern = parts
-                print(f"Metic Name: {metric_name} - Regex pattern: {regex_pattern}")
+                print(f"Metric Name: {metric_name} - Regex pattern: {regex_pattern}")
                 config_entries[output_file.strip()].append((metric_name.strip(), regex_pattern.strip()))
 
     return config_entries
@@ -113,6 +113,7 @@ def main():
 
     tables_data = []
     for task_dir in args.task_dir:
+        print(f"Processing {task_dir}")
         table_data = []
         for idx, subdir in enumerate(os.listdir(task_dir)):
             if os.path.isdir(os.path.join(task_dir, subdir)):
