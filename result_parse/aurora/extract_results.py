@@ -32,7 +32,7 @@ def extract_metrics(config_entries, circuit_dir, metrics_map):
     """Extracts metrics from files in circuit_dir into metrics_map."""
     for _, metric_patterns in config_entries.items():
         for metric_name, _ in metric_patterns:
-            metrics_map.setdefault(metric_name, -1)
+            metrics_map.setdefault(metric_name, None)
 
     for output_file, metric_patterns in config_entries.items():
         path = os.path.join(circuit_dir, output_file)
@@ -169,13 +169,19 @@ def generate_average_sheets(wb, all_task_data, metric_keys):
                 seed_refs = []
                 for seed_name in sorted(task_data.keys()):
                     sheet_name = f"Task_{task_idx}_{seed_name}"
-                    # Use INDEX/MATCH to find the metric value and convert to a number
-                    ref = f'VALUE(INDEX(\'{sheet_name}\'!${metric_col_letter}:${metric_col_letter}, MATCH($A{r_idx}, \'{sheet_name}\'!$A:$A, 0)))'
+
+                    # FIX: Add ISBLANK check to prevent VALUE() from converting empty cells to 0
+                    ref = f'IF(ISBLANK(INDEX(\'{sheet_name}\'!${metric_col_letter}:${metric_col_letter}, MATCH($A{r_idx}, \'{sheet_name}\'!$A:$A, 0))), "", VALUE(INDEX(\'{sheet_name}\'!${metric_col_letter}:${metric_col_letter}, MATCH($A{r_idx}, \'{sheet_name}\'!$A:$A, 0))))'
                     seed_refs.append(ref)
                 
+                # Check if there are any references to average.
                 if seed_refs:
-                    avg_formula = f'=IFERROR(AVERAGE({", ".join(seed_refs)}), "")'
+                    # The criterion is ">-1" to include all non-negative numbers
+                    avg_formula = f'=IFERROR(AVERAGEIF({{{", ".join(seed_refs)}}}, ">-1"), "")'
                     ws_avg.cell(row=r_idx, column=m_idx + 2, value=avg_formula)
+                else:
+                    # If no seeds or data found, leave the cell blank
+                    ws_avg.cell(row=r_idx, column=m_idx + 2, value="")
 
 
 def build_ratio_sheet(wb, all_task_data, metric_keys):
