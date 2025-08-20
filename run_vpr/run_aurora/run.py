@@ -191,8 +191,13 @@ def setup_output_directory(circuit_name: str,
         raise FileNotFoundError(f"RR graph file not found: {rr_graph_source}")
     
     rr_graph_dest = circuit_output_dir / f"rr_graph.bin"
-    os.symlink(rr_graph_source, rr_graph_dest)
-    logging.info(f"Created soft link to RR graph file: {rr_graph_dest}")
+    # Remove existing link if it exists
+    if os.path.exists(rr_graph_dest):
+        os.unlink(rr_graph_dest)
+
+    # Create hard link instead of symlink
+    os.link(rr_graph_source, rr_graph_dest)
+    logging.info(f"Created hard link to RR graph file: {rr_graph_dest}")
 
     # create a soft link to the router lookahead file
     router_lookahead_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}/LVT/WORST/router_lookahead.bin"
@@ -200,11 +205,16 @@ def setup_output_directory(circuit_name: str,
         raise FileNotFoundError(f"Router lookahead file not found: {router_lookahead_source}")
     
     router_lookahead_dest = circuit_output_dir / f"router_lookahead.bin"
-    os.symlink(router_lookahead_source, router_lookahead_dest)
-    logging.info(f"Created soft link to Router lookahead file: {router_lookahead_dest}")
+    # Remove existing link if it exists
+    if os.path.exists(router_lookahead_dest):
+        os.unlink(router_lookahead_dest)
+
+    # Create hard link instead of symlink
+    os.link(router_lookahead_source, router_lookahead_dest)
+    logging.info(f"Created hard link to Router lookahead file: {router_lookahead_dest}")
 
     # create a soft link to the vpr.xml file
-    vpr_xml_source = device_data_dir / f"TURNKEY-FPGA{device_size}-{device_data_quarter}" / "LVT" / "WORST" / "vpr.xml"
+    vpr_xml_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}" / "LVT" / "WORST" / "vpr.xml"
     if not vpr_xml_source.exists():
         raise FileNotFoundError(f"VPR XML file not found: {vpr_xml_source}")
     
@@ -215,7 +225,7 @@ def setup_output_directory(circuit_name: str,
     return circuit_output_dir
 
 
-def run_vpr_command(command: str, working_dir: Path) -> Tuple[bool, str]:
+def run_vpr_command(command: List[str], working_dir: Path) -> Tuple[bool, str]:
     """
     Run VPR command in the specified directory.
     
@@ -229,20 +239,35 @@ def run_vpr_command(command: str, working_dir: Path) -> Tuple[bool, str]:
     try:
         logging.info(f"Running VPR command in {working_dir}: {command}")
         
+        # Capture output and write to files
+        stdout_file = working_dir / "vpr.out"
+        stderr_file = working_dir / "vpr.err"
+        
         result = subprocess.run(
-            command.split(),
+            command,
             cwd=working_dir,
             capture_output=True,
             text=True,
             timeout=3600  # 1 hour timeout
         )
         
+        # Write captured output to files
+        with open(stdout_file, 'w') as f:
+            f.write(result.stdout)
+        
+        with open(stderr_file, 'w') as f:
+            f.write(result.stderr)
+        
         if result.returncode == 0:
             logging.info(f"VPR command completed successfully for {working_dir.name}")
+            logging.info(f"Output saved to: {stdout_file}")
+            logging.info(f"Warnings/Info saved to: {stderr_file}")
             return True, "Success"
         else:
-            error_msg = f"VPR command failed with return code {result.returncode}\nSTDERR: {result.stderr}"
+            error_msg = f"VPR command failed with return code {result.returncode}"
             logging.error(error_msg)
+            logging.error(f"Full error output saved to: {stderr_file}")
+            logging.error(f"Full standard output saved to: {stdout_file}")
             return False, error_msg
             
     except subprocess.TimeoutExpired:
