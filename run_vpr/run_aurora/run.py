@@ -145,7 +145,8 @@ def setup_output_directory(circuit_name: str,
                            resource_dir: Path,
                            device_data_dir: Path,
                            device_data_quarter: str,
-                           device_size: str) -> Path:
+                           device_size: str,
+                           seed_number: int) -> Path:
     """
     Set up output directory for a circuit with required files.
     
@@ -156,7 +157,7 @@ def setup_output_directory(circuit_name: str,
         device_data_dir: Device data directory containing rr_graph.bin and router_lookahead.bin
         device_data_quarter: Device data quarter, e.g., 2024Q3
         device_size: Device size extracted from VPR command
-        
+        seed_number: Seed number for the VPR command
     Returns:
         Path to the created circuit output directory
         
@@ -164,7 +165,7 @@ def setup_output_directory(circuit_name: str,
         FileNotFoundError: If required files are not found
     """
     # Create output directory structure
-    circuit_output_dir = output_dir / circuit_name / circuit_name
+    circuit_output_dir = output_dir / f"seed_{seed_number}" / circuit_name / circuit_name
     circuit_output_dir.mkdir(parents=True, exist_ok=True)
     
     # create a soft link to the .blif file
@@ -286,7 +287,8 @@ def process_circuit(vpr_binary: Path,
                     output_dir: Path,
                     resource_dir: Path,
                     device_data_dir: Path,
-                    device_data_quarter: str) -> Tuple[str, bool, str]:
+                    device_data_quarter: str,
+                    seed_number: int) -> Tuple[str, bool, str]:
     """
     Process a single circuit: read command, modify it, set up files, and run VPR.
     
@@ -298,6 +300,7 @@ def process_circuit(vpr_binary: Path,
         resource_dir: Resource directory
         device_data_dir: Device data directory
         device_data_quarter: Device data quarter
+        seed_number: Seed number for the VPR command
     Returns:
         Tuple of (circuit_name, success, message)
     """
@@ -314,7 +317,8 @@ def process_circuit(vpr_binary: Path,
             resource_dir,
             device_data_dir,
             device_data_quarter,
-            device_size
+            device_size,
+            seed_number
         )
         
         command = [f"{vpr_binary}"
@@ -358,6 +362,8 @@ def process_circuit(vpr_binary: Path,
         , "router_lookahead.bin"
         , "--allow_dangling_combinational_nodes"
         , "on"
+        , "--seed"
+        , f"{seed_number}"
         , "--target_ext_pin_util"
         , "clb:0.8,1"
         , "--router_initial_acc_cost_chan_congestion_weight"
@@ -398,6 +404,9 @@ def main():
 
     parser.add_argument("--max_workers", type=int, default=4,
                        help="Maximum number of parallel processes (default: 4)")
+    
+    parser.add_argument("--seed_numbers", nargs='+', type=int, required=True,
+                       help="Seed numbers for the VPR command (space-separated)")
 
     args = parser.parse_args()
     
@@ -411,6 +420,7 @@ def main():
     device_data_dir = Path(args.device_data_dir)
     device_data_quarter = args.device_data_quarter
     vpr_binary = args.vpr_binary
+    seed_numbers = args.seed_numbers
     
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -430,8 +440,17 @@ def main():
         with ProcessPoolExecutor(max_workers=args.max_workers) as executor:
             # Submit all circuit processing tasks
             future_to_circuit = {
-                executor.submit(process_circuit, vpr_binary, circuit, task_dir, output_dir, resource_dir, device_data_dir, device_data_quarter): circuit
+                executor.submit(process_circuit,
+                                vpr_binary,
+                                circuit,
+                                task_dir,
+                                output_dir,
+                                resource_dir,
+                                device_data_dir,
+                                device_data_quarter,
+                                seed_number): circuit
                 for circuit in circuits
+                for seed_number in seed_numbers
             }
             
             # Collect results as they complete
