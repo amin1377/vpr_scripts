@@ -94,7 +94,7 @@ def read_vpr_command(packing_rpt_path: Path) -> str:
         raise ValueError(f"Error reading packing.rpt: {e}")
 
 
-def modify_vpr_command(original_command: str) -> Tuple[str, str]:
+def get_device_size_from_command(original_command: str) -> str:
     """
     Modify VPR command to replace --pack with --analytical_place --route --analysis.
     Also extract device size from the command.
@@ -103,16 +103,11 @@ def modify_vpr_command(original_command: str) -> Tuple[str, str]:
         original_command: Original VPR command string
         
     Returns:
-        Tuple of (modified_command, device_size)
+        Device size
         
     Raises:
         ValueError: If --pack not found or device size not found
     """
-    if "--pack" not in original_command:
-        raise ValueError("--pack parameter not found in VPR command")
-    
-    # Replace --pack with new parameters
-    modified_command = original_command.replace("--pack", "--analytical_place --route --analysis")
     
     # Extract device size (pattern: --device FPGA####)
     device_match = re.search(r'--device\s+FPGA(\d+)', original_command)
@@ -122,7 +117,7 @@ def modify_vpr_command(original_command: str) -> Tuple[str, str]:
     device_size = device_match.group(1)
     logging.info(f"Extracted device size: {device_size}")
     
-    return modified_command, device_size
+    return device_size
 
 
 def update_vpr_command_arch_path(command: str) -> str:
@@ -228,36 +223,68 @@ def run_vpr_command(command: str, working_dir: Path) -> Tuple[bool, str]:
         return False, error_msg
 
 
-def process_circuit(circuit_name: str, task_dir: Path, output_dir: Path, arch_dir: Path) -> Tuple[str, bool, str]:
+def process_circuit(vpr_binary: Path, circuit_name: str, task_dir: Path, output_dir: Path, arch_dir: Path, resource_dir: Path, device_data_dir: Path) -> Tuple[str, bool, str]:
     """
     Process a single circuit: read command, modify it, set up files, and run VPR.
     
     Args:
+        vpr_binary: Path to the VPR binary
         circuit_name: Name of the circuit to process
         task_dir: Task directory
         output_dir: Output directory
         arch_dir: Architecture directory
-        
+        resource_dir: Resource directory
     Returns:
         Tuple of (circuit_name, success, message)
     """
     try:
         logging.info(f"Processing circuit: {circuit_name}")
+
+        original_command = read_vpr_command(task_dir / circuit_name / circuit_name / "packing.rpt")
+        device_size = get_device_size_from_command(original_command)
         
-        # Read VPR command from packing.rpt
-        packing_rpt_path = task_dir / circuit_name / circuit_name / "packing.rpt"
-        original_command = read_vpr_command(packing_rpt_path)
-        
-        # Modify command and extract device size
-        modified_command, device_size = modify_vpr_command(original_command)
-        
-        # Update command to use vpr.xml
-        final_command = update_vpr_command_arch_path(modified_command)
-        
-        # Set up output directory with required files
-        circuit_output_dir = setup_output_directory(
-            circuit_name, output_dir, task_dir, arch_dir, device_size
-        )
+        command = [f"{vpr_binary}"
+        , f"{resource_dir}/{circuit_name}_post_synth.blif"
+        , "--device"
+        , f"FPGA{device_size}"
+        , "--timing_analysis"
+        , "on"
+        , "--constant_net_method"
+        , "route"
+        , "--clock_modeling"
+        , "ideal"
+        , "--exit_before_pack"
+        , "off"
+        , "--circuit_format"
+        , "eblif"
+        , "--sdc_file"
+        , f"{resource_dir}/{circuit_name}.sdc"
+        , "--absorb_buffer_luts"
+        , "off"
+        , "--route_chan_width"
+        , "160"
+        , "--flat_routing"
+        , "on"
+        , "--max_router_iterations"
+        , "100"
+        , "--gen_post_synthesis_netlist"
+        , "on"
+        , "--post_synth_netlist_unconn_inputs"
+        , "gnd"
+        , "--post_synth_netlist_unconn_outputs"
+        , "unconnected"
+        , "--timing_report_npaths"
+        , "100"
+        , "--timing_report_detail"
+        , "detailed"
+        , "--read_rr_graph"
+        , "/home/amohaghegh/aurora2/dev/device_data/QLF_K6N10/GF/12nm/TURNKEYCRR-FPGA7878-2024Q3/LVT/WORST/rr_graph.bin"
+        , "--read_router_lookahead"
+        , "/home/amohaghegh/aurora2/dev/device_data/QLF_K6N10/GF/12nm/TURNKEYCRR-FPGA7878-2024Q3/LVT/WORST/router_lookahead.bin"
+        , "--allow_dangling_combinational_nodes"
+        , "on"
+        , "--target_ext_pin_util"
+        , "clb:0.8,1"]
         
         # Run VPR command
         success, message = run_vpr_command(final_command, circuit_output_dir)
@@ -275,10 +302,16 @@ def main():
     parser = argparse.ArgumentParser(description="Process VPR circuits in parallel")
     parser.add_argument("--task_dir", required=True, type=str, 
                        help="Directory containing circuit task directories")
+    parser.add_argument("--vpr_binary", required=True, type=str,
+                       help="VPR binary")
     parser.add_argument("--output_dir", required=True, type=str,
                        help="Output directory for processed circuits")
     parser.add_argument("--arch_dir", required=True, type=str,
                        help="Architecture directory containing VPR XML files")
+    parser.add_argument("--resource_dir", type=str, default="",
+                       help="Resource directory containing blif files")
+    parser.add_argument("--device_data_dir", type=str, default="",
+                       help="Device data directory containing rr_graph.bin and router_lookahead.bin")
     parser.add_argument("--max_workers", type=int, default=4,
                        help="Maximum number of parallel processes (default: 4)")
     
@@ -291,6 +324,9 @@ def main():
     task_dir = Path(args.task_dir)
     output_dir = Path(args.output_dir)
     arch_dir = Path(args.arch_dir)
+    resource_dir = Path(args.resource_dir)
+    device_data_dir = Path(args.device_data_dir)
+    vpr_binary = args.vpr_binary
     
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -310,7 +346,7 @@ def main():
         with ProcessPoolExecutor(max_workers=args.max_workers) as executor:
             # Submit all circuit processing tasks
             future_to_circuit = {
-                executor.submit(process_circuit, circuit, task_dir, output_dir, arch_dir): circuit
+                executor.submit(process_circuit, vpr_binary, circuit, task_dir, output_dir, arch_dir, resource_dir, device_data_dir): circuit
                 for circuit in circuits
             }
             
