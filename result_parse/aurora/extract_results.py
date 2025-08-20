@@ -229,7 +229,9 @@ def build_ratio_sheet(wb, all_task_data, metric_keys):
                 # Reference Task_i_Avg sheet
                 compare_ref = f'\'Task_{task_idx + 1}_Avg\'!{compare_col_letter}{r_idx}'
                 
-                ratio_formula = f'=IFERROR({compare_ref}/{base_ref}, "")'
+                # Corrected formula with ISBLANK check
+                ratio_formula = f'=IF(OR({base_ref}="", {compare_ref}=""), "", {compare_ref}/{base_ref})'
+
                 ws.cell(row=r_idx, column=col_ptr, value=ratio_formula)
                 col_ptr += 1
 
