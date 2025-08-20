@@ -140,8 +140,12 @@ def update_vpr_command_arch_path(command: str) -> str:
     return " ".join(parts)
 
 
-def setup_output_directory(circuit_name: str, output_dir: Path, task_dir: Path, 
-                          arch_dir: Path, device_size: str) -> Path:
+def setup_output_directory(circuit_name: str,
+                           output_dir: Path,
+                           resource_dir: Path,
+                           device_data_dir: Path,
+                           arch_dir: Path,
+                           device_size: str) -> Path:
     """
     Set up output directory for a circuit with required files.
     
@@ -162,23 +166,50 @@ def setup_output_directory(circuit_name: str, output_dir: Path, task_dir: Path,
     circuit_output_dir = output_dir / circuit_name / circuit_name
     circuit_output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Copy .blif file
-    blif_source = task_dir / circuit_name / circuit_name / f"{circuit_name}_post_synth.blif"
+    # create a soft link to the .blif file
+    blif_source = resource_dir / f"{circuit_name}_post_synth.blif"
     if not blif_source.exists():
         raise FileNotFoundError(f"BLIF file not found: {blif_source}")
     
     blif_dest = circuit_output_dir / f"{circuit_name}_post_synth.blif"
-    shutil.copy2(blif_source, blif_dest)
-    logging.info(f"Copied BLIF file to: {blif_dest}")
+    os.symlink(blif_source, blif_dest)
+    logging.info(f"Created soft link to BLIF file: {blif_dest}")
+
+    # create a soft link to the sdc file
+    sdc_source = resource_dir / f"{circuit_name}.sdc"
+    if not sdc_source.exists():
+        raise FileNotFoundError(f"SDC file not found: {sdc_source}")
     
-    # Copy vpr.xml file
-    vpr_xml_source = arch_dir / f"TURNKEY-FPGA{device_size}-2024Q3" / "LVT" / "WORST" / "vpr.xml"
+    sdc_dest = circuit_output_dir / f"{circuit_name}.sdc"
+    os.symlink(sdc_source, sdc_dest)
+    logging.info(f"Created soft link to SDC file: {sdc_dest}")
+
+    # create a soft link to the rr graph file
+    rr_graph_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-2024Q3/LVT/WORST/rr_graph.bin"
+    if not rr_graph_source.exists():
+        raise FileNotFoundError(f"RR graph file not found: {rr_graph_source}")
+    
+    rr_graph_dest = circuit_output_dir / f"rr_graph.bin"
+    os.symlink(rr_graph_source, rr_graph_dest)
+    logging.info(f"Created soft link to RR graph file: {rr_graph_dest}")
+
+    # create a soft link to the router lookahead file
+    router_lookahead_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-2024Q3/LVT/WORST/router_lookahead.bin"
+    if not router_lookahead_source.exists():
+        raise FileNotFoundError(f"Router lookahead file not found: {router_lookahead_source}")
+    
+    router_lookahead_dest = circuit_output_dir / f"router_lookahead.bin"
+    os.symlink(router_lookahead_source, router_lookahead_dest)
+    logging.info(f"Created soft link to Router lookahead file: {router_lookahead_dest}")
+
+    # create a soft link to the vpr.xml file
+    vpr_xml_source = device_data_dir / f"TURNKEY-FPGA{device_size}-2024Q3" / "LVT" / "WORST" / "vpr.xml"
     if not vpr_xml_source.exists():
         raise FileNotFoundError(f"VPR XML file not found: {vpr_xml_source}")
     
     vpr_xml_dest = circuit_output_dir / "vpr.xml"
-    shutil.copy2(vpr_xml_source, vpr_xml_dest)
-    logging.info(f"Copied VPR XML file to: {vpr_xml_dest}")
+    os.symlink(vpr_xml_source, vpr_xml_dest)
+    logging.info(f"Created soft link to VPR XML file: {vpr_xml_dest}")
     
     return circuit_output_dir
 
