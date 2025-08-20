@@ -9,7 +9,7 @@ This script processes multiple VPR circuits in parallel by:
 4. Running the modified VPR commands
 
 Usage:
-    python vpr_processor.py --task_dir /path/to/tasks --output_dir /path/to/output --arch_dir /path/to/arch
+    python vpr_processor.py 
 """
 
 import os
@@ -144,7 +144,7 @@ def setup_output_directory(circuit_name: str,
                            output_dir: Path,
                            resource_dir: Path,
                            device_data_dir: Path,
-                           arch_dir: Path,
+                           device_data_quarter: str,
                            device_size: str) -> Path:
     """
     Set up output directory for a circuit with required files.
@@ -152,8 +152,9 @@ def setup_output_directory(circuit_name: str,
     Args:
         circuit_name: Name of the circuit
         output_dir: Base output directory
-        task_dir: Task directory containing source files
-        arch_dir: Architecture directory
+        resource_dir: Resource directory containing blif and sdc files
+        device_data_dir: Device data directory containing rr_graph.bin and router_lookahead.bin
+        device_data_quarter: Device data quarter, e.g., 2024Q3
         device_size: Device size extracted from VPR command
         
     Returns:
@@ -185,7 +186,7 @@ def setup_output_directory(circuit_name: str,
     logging.info(f"Created soft link to SDC file: {sdc_dest}")
 
     # create a soft link to the rr graph file
-    rr_graph_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-2024Q3/LVT/WORST/rr_graph.bin"
+    rr_graph_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}/LVT/WORST/rr_graph.bin"
     if not rr_graph_source.exists():
         raise FileNotFoundError(f"RR graph file not found: {rr_graph_source}")
     
@@ -194,7 +195,7 @@ def setup_output_directory(circuit_name: str,
     logging.info(f"Created soft link to RR graph file: {rr_graph_dest}")
 
     # create a soft link to the router lookahead file
-    router_lookahead_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-2024Q3/LVT/WORST/router_lookahead.bin"
+    router_lookahead_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}/LVT/WORST/router_lookahead.bin"
     if not router_lookahead_source.exists():
         raise FileNotFoundError(f"Router lookahead file not found: {router_lookahead_source}")
     
@@ -203,7 +204,7 @@ def setup_output_directory(circuit_name: str,
     logging.info(f"Created soft link to Router lookahead file: {router_lookahead_dest}")
 
     # create a soft link to the vpr.xml file
-    vpr_xml_source = device_data_dir / f"TURNKEY-FPGA{device_size}-2024Q3" / "LVT" / "WORST" / "vpr.xml"
+    vpr_xml_source = device_data_dir / f"TURNKEY-FPGA{device_size}-{device_data_quarter}" / "LVT" / "WORST" / "vpr.xml"
     if not vpr_xml_source.exists():
         raise FileNotFoundError(f"VPR XML file not found: {vpr_xml_source}")
     
@@ -254,7 +255,13 @@ def run_vpr_command(command: str, working_dir: Path) -> Tuple[bool, str]:
         return False, error_msg
 
 
-def process_circuit(vpr_binary: Path, circuit_name: str, task_dir: Path, output_dir: Path, arch_dir: Path, resource_dir: Path, device_data_dir: Path) -> Tuple[str, bool, str]:
+def process_circuit(vpr_binary: Path,
+                    circuit_name: str,
+                    task_dir: Path,
+                    output_dir: Path,
+                    resource_dir: Path,
+                    device_data_dir: Path,
+                    device_data_quarter: str) -> Tuple[str, bool, str]:
     """
     Process a single circuit: read command, modify it, set up files, and run VPR.
     
@@ -263,8 +270,9 @@ def process_circuit(vpr_binary: Path, circuit_name: str, task_dir: Path, output_
         circuit_name: Name of the circuit to process
         task_dir: Task directory
         output_dir: Output directory
-        arch_dir: Architecture directory
         resource_dir: Resource directory
+        device_data_dir: Device data directory
+        device_data_quarter: Device data quarter
     Returns:
         Tuple of (circuit_name, success, message)
     """
@@ -273,9 +281,20 @@ def process_circuit(vpr_binary: Path, circuit_name: str, task_dir: Path, output_
 
         original_command = read_vpr_command(task_dir / circuit_name / circuit_name / "packing.rpt")
         device_size = get_device_size_from_command(original_command)
+
+        # Set up output directory with required files
+        circuit_output_dir = setup_output_directory(
+            circuit_name,
+            output_dir,
+            resource_dir,
+            device_data_dir,
+            device_data_quarter,
+            device_size
+        )
         
         command = [f"{vpr_binary}"
-        , f"{resource_dir}/{circuit_name}_post_synth.blif"
+        , "vpr.xml"
+        , f"{circuit_name}_post_synth.blif"
         , "--device"
         , f"FPGA{device_size}"
         , "--timing_analysis"
@@ -309,16 +328,18 @@ def process_circuit(vpr_binary: Path, circuit_name: str, task_dir: Path, output_
         , "--timing_report_detail"
         , "detailed"
         , "--read_rr_graph"
-        , "/home/amohaghegh/aurora2/dev/device_data/QLF_K6N10/GF/12nm/TURNKEYCRR-FPGA7878-2024Q3/LVT/WORST/rr_graph.bin"
+        , "rr_graph.bin"
         , "--read_router_lookahead"
-        , "/home/amohaghegh/aurora2/dev/device_data/QLF_K6N10/GF/12nm/TURNKEYCRR-FPGA7878-2024Q3/LVT/WORST/router_lookahead.bin"
+        , "router_lookahead.bin"
         , "--allow_dangling_combinational_nodes"
         , "on"
         , "--target_ext_pin_util"
-        , "clb:0.8,1"]
+        , "clb:0.8,1"
+        , "--router_initial_acc_cost_chan_congestion_weight"
+        , "0.0"]
         
         # Run VPR command
-        success, message = run_vpr_command(final_command, circuit_output_dir)
+        success, message = run_vpr_command(command, circuit_output_dir)
         
         return circuit_name, success, message
         
@@ -331,21 +352,28 @@ def process_circuit(vpr_binary: Path, circuit_name: str, task_dir: Path, output_
 def main():
     """Main function to orchestrate the VPR circuit processing."""
     parser = argparse.ArgumentParser(description="Process VPR circuits in parallel")
+
     parser.add_argument("--task_dir", required=True, type=str, 
                        help="Directory containing circuit task directories")
+
     parser.add_argument("--vpr_binary", required=True, type=str,
                        help="VPR binary")
+
     parser.add_argument("--output_dir", required=True, type=str,
                        help="Output directory for processed circuits")
-    parser.add_argument("--arch_dir", required=True, type=str,
-                       help="Architecture directory containing VPR XML files")
+
     parser.add_argument("--resource_dir", type=str, default="",
                        help="Resource directory containing blif files")
+
     parser.add_argument("--device_data_dir", type=str, default="",
                        help="Device data directory containing rr_graph.bin and router_lookahead.bin")
+
+    parser.add_argument("--device_data_quarter", type=str, default="",
+                       help="Device data quarter, e.g., 2024Q3")
+
     parser.add_argument("--max_workers", type=int, default=4,
                        help="Maximum number of parallel processes (default: 4)")
-    
+
     args = parser.parse_args()
     
     # Set up logging
@@ -354,9 +382,9 @@ def main():
     # Convert paths
     task_dir = Path(args.task_dir)
     output_dir = Path(args.output_dir)
-    arch_dir = Path(args.arch_dir)
     resource_dir = Path(args.resource_dir)
     device_data_dir = Path(args.device_data_dir)
+    device_data_quarter = args.device_data_quarter
     vpr_binary = args.vpr_binary
     
     # Create output directory
@@ -377,7 +405,7 @@ def main():
         with ProcessPoolExecutor(max_workers=args.max_workers) as executor:
             # Submit all circuit processing tasks
             future_to_circuit = {
-                executor.submit(process_circuit, vpr_binary, circuit, task_dir, output_dir, arch_dir, resource_dir, device_data_dir): circuit
+                executor.submit(process_circuit, vpr_binary, circuit, task_dir, output_dir, resource_dir, device_data_dir, device_data_quarter): circuit
                 for circuit in circuits
             }
             
