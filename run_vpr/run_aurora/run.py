@@ -288,6 +288,7 @@ def process_circuit(vpr_binary: Path,
                     resource_dir: Path,
                     device_data_dir: Path,
                     device_data_quarter: str,
+                    vpr_additional_args: str,
                     seed_number: int) -> Tuple[str, bool, str]:
     """
     Process a single circuit: read command, modify it, set up files, and run VPR.
@@ -300,6 +301,7 @@ def process_circuit(vpr_binary: Path,
         resource_dir: Resource directory
         device_data_dir: Device data directory
         device_data_quarter: Device data quarter
+        vpr_additional_args: Additional VPR command arguments
         seed_number: Seed number for the VPR command
     Returns:
         Tuple of (circuit_name, success, message)
@@ -364,10 +366,10 @@ def process_circuit(vpr_binary: Path,
         , "on"
         , "--seed"
         , f"{seed_number}"
-        , "--target_ext_pin_util"
-        , "clb:0.8,1"
-        , "--router_initial_acc_cost_chan_congestion_weight"
-        , "0.0"]
+        ]
+
+        if vpr_additional_args:
+            command.extend(vpr_additional_args.split())
         
         # Run VPR command
         success, message = run_vpr_command(command, circuit_output_dir)
@@ -408,6 +410,9 @@ def main():
     parser.add_argument("--seed_numbers", nargs='+', type=int, required=True,
                        help="Seed numbers for the VPR command (space-separated)")
 
+    parser.add_argument("--vpr_additional_args", type=str, default="",
+                       help="Additional VPR command arguments")
+
     args = parser.parse_args()
     
     # Set up logging
@@ -420,7 +425,9 @@ def main():
     device_data_dir = Path(args.device_data_dir)
     device_data_quarter = args.device_data_quarter
     vpr_binary = args.vpr_binary
+    vpr_additional_args = args.vpr_additional_args
     seed_numbers = args.seed_numbers
+
     
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -448,6 +455,7 @@ def main():
                                 resource_dir,
                                 device_data_dir,
                                 device_data_quarter,
+                                vpr_additional_args,
                                 seed_number): circuit
                 for circuit in circuits
                 for seed_number in seed_numbers
