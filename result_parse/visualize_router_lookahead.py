@@ -14,6 +14,7 @@ def getArgs():
 
 def extractInfo(csv_file_name):
 	data = {"CHANX": {}, "CHANY": {}}
+	num_segment_types = 0
 	with open(csv_file_name, 'r', newline='', encoding='utf-8') as csv_file:
 		# Create a CSV reader
 		csv_reader = csv.DictReader(csv_file)
@@ -39,8 +40,9 @@ def extractInfo(csv_file_name):
 
 			assert not delta_y in data[chan_type][seg_type][delta_x]
 			data[chan_type][seg_type][delta_x][delta_y] = {"cong": cong_cost, "delay": delay_cost}
+			num_segment_types = max(num_segment_types, seg_type + 1)
 
-	return data
+	return data, num_segment_types
 
 def getDxDyPlotData(data, chan_type, seg_type, cost_type):
 	cost_arr = []
@@ -107,17 +109,19 @@ def main(csv_file_names):
 	print(csv_file_names)
 	assert len(csv_file_names) == 1 or len(csv_file_names) == 2
 	router_looaheads_data = []
-	num_x = 4
-	num_y = 2
 
 	for csv_file_name in csv_file_names:
-		data = extractInfo(csv_file_name)
+		data, num_segment_types = extractInfo(csv_file_name)
+
+		num_x = num_segment_types * 2
+		num_y = 2
+
 		fig, axs = plt.subplots(num_y, num_x)
 
 		for y in range(num_y):
 			for x in range(num_x):
 				chan_type  = "CHANX" if y == 0 else "CHANY"
-				seg_type = 0 if x % 2 == 0 else 1
+				seg_type = x % num_segment_types
 				cost_type = "delay" if int(x / 2) == 0 else "cong"
 				# print(f"Chan type: {chan_type}, Seg type: {seg_type}, cost_type: {cost_type}")
 				makePlot(data, fig, axs[y, x], chan_type, seg_type, cost_type)
