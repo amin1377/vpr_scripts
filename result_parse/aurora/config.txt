@@ -1,10 +1,8 @@
 # VPR Packing Metrics
-num_io_blocks;packing.rpt;^Netlist io blocks:\s*(\d+)
-num_clb_blocks;packing.rpt;Netlist clb blocks:\s*(\d+)
-num_bram_blocks;packing.rpt;^Netlist bram blocks:\s*(\d+)
-num_dsp_blocks;packing.rpt;^Netlist dsp blocks:\s*(\d+)
-num_ble5_blocks;packing.rpt;^ble5\s*:\s*(\d+)$
-num_ble6_blocks;packing.rpt;^ble6\s*:\s*(\d+)$
+num_io_blocks;packing.rpt;^\s*io\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
+num_clb_blocks;packing.rpt;^\s*clb\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
+num_bram_blocks;packing.rpt;^\s*bram\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
+num_dsp_blocks;packing.rpt;^\s*dsp\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
 
 #VPR Placement Metrics
 total_swaps;placement.rpt;Swaps called\s*:\s*(\d+)
@@ -19,5 +17,4 @@ initial_placement_cpd;placement.rpt;Initial placement estimated Critical Path De
 critical_path_delay;routing.rpt;Final critical path delay \(least slack\): (.*) ns
 routed_wirelength;routing.rpt;\s*Total wirelength: (.*), average .*
 total_heap_pushes;routing.rpt;Router Stats: .*total_heap_pushes: (\d+) .*
-total_heap_pops;routing.rpt;Router Stats: .*total_heap_pops: (\d+) .*
-routing_struggle;routing.rpt;Router Stats: .*routing_struggle_ratio: (.*)
+total_heap_pops;routing.rpt;Router Stats: .*total_heap_pops: (\d+)
