@@ -36,16 +36,62 @@ def extract_metrics(config_entries, circuit_dir, metrics_map):
 
     for output_file, metric_patterns in config_entries.items():
         path = os.path.join(circuit_dir, output_file)
+        
+        # Separate context-aware patterns from regular patterns
+        regular_patterns = []
+        context_patterns = []  # List of (metric_name, context_regex, value_regex)
+        
+        for metric_name, regex_pattern in metric_patterns:
+            if regex_pattern.startswith("CONTEXT:"):
+                # Parse: CONTEXT:context_pattern>>>value_pattern
+                context_part = regex_pattern[8:]  # Remove "CONTEXT:"
+                if ">>>" in context_part:
+                    context_regex, value_regex = context_part.split(">>>", 1)
+                    context_patterns.append((metric_name, context_regex.strip(), value_regex.strip()))
+            else:
+                regular_patterns.append((metric_name, regex_pattern))
+        
+        # Group context patterns by their context_regex
+        # {context_regex: [(metric_name, value_regex), ...]}
+        context_groups = {}
+        for metric_name, context_regex, value_regex in context_patterns:
+            if context_regex not in context_groups:
+                context_groups[context_regex] = []
+            context_groups[context_regex].append((metric_name, value_regex))
+        
+        # Sort context patterns by specificity (longer patterns first)
+        sorted_contexts = sorted(context_groups.keys(), key=len, reverse=True)
+        
         try:
             with open(path, "r") as f:
+                current_context = None  # The active context_regex
+                
                 for line in f:
                     s = line.strip()
-                    for metric_name, regex_pattern in metric_patterns:
+                    
+                    # Check for context changes (most specific first)
+                    for context_regex in sorted_contexts:
+                        if re.search(context_regex, s):
+                            current_context = context_regex
+                            break
+                    
+                    # If in a context, try to match value patterns for that context
+                    if current_context and current_context in context_groups:
+                        for metric_name, value_regex in context_groups[current_context]:
+                            if metrics_map.get(metric_name) not in (None, -1):
+                                continue
+                            m = re.search(value_regex, s)
+                            if m:
+                                metrics_map[metric_name] = m.group(1).strip()
+                    
+                    # Standard regex matching for regular patterns
+                    for metric_name, regex_pattern in regular_patterns:
                         if metrics_map.get(metric_name) not in (None, -1):
                             continue
                         m = re.search(regex_pattern, s)
                         if m:
                             metrics_map[metric_name] = m.group(1).strip()
+                            
         except FileNotFoundError:
             print(f"Warning: File '{path}' not found. Marking related metrics as None.")
             for metric_name, _ in metric_patterns:
