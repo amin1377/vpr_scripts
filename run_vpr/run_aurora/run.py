@@ -140,92 +140,6 @@ def update_vpr_command_arch_path(command: str) -> str:
     return " ".join(parts)
 
 
-def setup_output_directory(circuit_name: str,
-                           output_dir: Path,
-                           resource_dir: Path,
-                           device_data_dir: Path,
-                           device_data_quarter: str,
-                           device_size: str,
-                           seed_number: int) -> Path:
-    """
-    Set up output directory for a circuit with required files.
-    
-    Args:
-        circuit_name: Name of the circuit
-        output_dir: Base output directory
-        resource_dir: Resource directory containing blif and sdc files
-        device_data_dir: Device data directory containing rr_graph.bin and router_lookahead.bin
-        device_data_quarter: Device data quarter, e.g., 2024Q3
-        device_size: Device size extracted from VPR command
-        seed_number: Seed number for the VPR command
-    Returns:
-        Path to the created circuit output directory
-        
-    Raises:
-        FileNotFoundError: If required files are not found
-    """
-    # Create output directory structure
-    circuit_output_dir = output_dir / f"seed_{seed_number}" / circuit_name / circuit_name
-    circuit_output_dir.mkdir(parents=True, exist_ok=True)
-    
-    # create a soft link to the .blif file
-    blif_source = resource_dir / f"{circuit_name}_post_synth.blif"
-    if not blif_source.exists():
-        raise FileNotFoundError(f"BLIF file not found: {blif_source}")
-    
-    blif_dest = circuit_output_dir / f"{circuit_name}_post_synth.blif"
-    os.symlink(blif_source, blif_dest)
-    logging.info(f"Created soft link to BLIF file: {blif_dest}")
-
-    # create a soft link to the sdc file
-    sdc_source = resource_dir / f"{circuit_name}.sdc"
-    if not sdc_source.exists():
-        raise FileNotFoundError(f"SDC file not found: {sdc_source}")
-    
-    sdc_dest = circuit_output_dir / f"{circuit_name}.sdc"
-    os.symlink(sdc_source, sdc_dest)
-    logging.info(f"Created soft link to SDC file: {sdc_dest}")
-
-    # create a soft link to the rr graph file
-    rr_graph_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}/LVT/WORST/rr_graph.bin"
-    if not rr_graph_source.exists():
-        raise FileNotFoundError(f"RR graph file not found: {rr_graph_source}")
-    
-    rr_graph_dest = circuit_output_dir / f"rr_graph.bin"
-    # Remove existing link if it exists
-    if os.path.exists(rr_graph_dest):
-        os.unlink(rr_graph_dest)
-
-    # Create hard link instead of symlink
-    os.link(rr_graph_source, rr_graph_dest)
-    logging.info(f"Created hard link to RR graph file: {rr_graph_dest}")
-
-    # create a soft link to the router lookahead file
-    router_lookahead_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}/LVT/WORST/router_lookahead.bin"
-    if not router_lookahead_source.exists():
-        raise FileNotFoundError(f"Router lookahead file not found: {router_lookahead_source}")
-    
-    router_lookahead_dest = circuit_output_dir / f"router_lookahead.bin"
-    # Remove existing link if it exists
-    if os.path.exists(router_lookahead_dest):
-        os.unlink(router_lookahead_dest)
-
-    # Create hard link instead of symlink
-    os.link(router_lookahead_source, router_lookahead_dest)
-    logging.info(f"Created hard link to Router lookahead file: {router_lookahead_dest}")
-
-    # create a soft link to the vpr.xml file
-    vpr_xml_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}" / "LVT" / "WORST" / "vpr.xml"
-    if not vpr_xml_source.exists():
-        raise FileNotFoundError(f"VPR XML file not found: {vpr_xml_source}")
-    
-    vpr_xml_dest = circuit_output_dir / "vpr.xml"
-    os.symlink(vpr_xml_source, vpr_xml_dest)
-    logging.info(f"Created soft link to VPR XML file: {vpr_xml_dest}")
-    
-    return circuit_output_dir
-
-
 def run_vpr_command(command: List[str], working_dir: Path) -> Tuple[bool, str]:
     """
     Run VPR command in the specified directory.
@@ -312,22 +226,24 @@ def process_circuit(vpr_binary: Path,
         original_command = read_vpr_command(task_dir / circuit_name / circuit_name / "packing.rpt")
         device_size = get_device_size_from_command(original_command)
 
-        # Set up output directory with required files
-        circuit_output_dir = setup_output_directory(
-            circuit_name,
-            output_dir,
-            resource_dir,
-            device_data_dir,
-            device_data_quarter,
-            device_size,
-            seed_number
-        )
+        # Create output directory structure
+        circuit_output_dir = output_dir / f"seed_{seed_number}" / circuit_name / circuit_name
+        circuit_output_dir.mkdir(parents=True, exist_ok=True)
+
+        blif_source = resource_dir / f"{circuit_name}_post_synth.blif"
+        sdc_source = resource_dir / f"{circuit_name}.sdc"
+        timing_corner_device_data_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}" / "LVT" / "SSPG_0P72_125C"
+        rr_graph_source = timing_corner_device_data_source / "rr_graph.bin"
+        router_lookahead_source = timing_corner_device_data_source  / "router_lookahead.bin"
+        vpr_xml_source = timing_corner_device_data_source / "vpr.xml"
         
         command = [f"{vpr_binary}"
-        , "vpr.xml"
-        , f"{circuit_name}_post_synth.blif"
+        , f"{vpr_xml_source}"
+        , f"{blif_source}"
         , "--device"
         , f"FPGA{device_size}"
+        , "--target_ext_pin_util"
+        , "clb:0.8,1"
         , "--timing_analysis"
         , "on"
         , "--constant_net_method"
@@ -339,7 +255,7 @@ def process_circuit(vpr_binary: Path,
         , "--circuit_format"
         , "eblif"
         , "--sdc_file"
-        , f"{resource_dir}/{circuit_name}.sdc"
+        , f"{sdc_source}"
         , "--absorb_buffer_luts"
         , "off"
         , "--route_chan_width"
@@ -347,7 +263,9 @@ def process_circuit(vpr_binary: Path,
         , "--flat_routing"
         , "on"
         , "--max_router_iterations"
-        , "100"
+        , "200"
+        , "--routing_failure_predictor"
+        , "off"
         , "--gen_post_synthesis_netlist"
         , "on"
         , "--post_synth_netlist_unconn_inputs"
@@ -358,12 +276,16 @@ def process_circuit(vpr_binary: Path,
         , "100"
         , "--timing_report_detail"
         , "detailed"
+        , "--generate_rr_node_overuse_report"
+        , "on"
         , "--read_rr_graph"
-        , "rr_graph.bin"
+        , f"{rr_graph_source}"
         , "--read_router_lookahead"
-        , "router_lookahead.bin"
+        , f"{router_lookahead_source}"
         , "--allow_dangling_combinational_nodes"
         , "on"
+        , "--router_initial_acc_cost_chan_congestion_weight"
+        , "0.0"
         , "--seed"
         , f"{seed_number}"
         ]
