@@ -8,24 +8,36 @@ from functools import partial
 try:
     from openpyxl import Workbook
     from openpyxl.utils import get_column_letter, column_index_from_string
+    from openpyxl.formatting.rule import ColorScaleRule
 except ImportError as e:
     raise SystemExit("This script requires 'openpyxl'. Install it with: pip install openpyxl") from e
 
 
 def parse_config_file(config_filename):
-    """Reads the config file and returns a dict: {output_file: [(metric_name, regex_pattern)]}."""
+    """Reads the config file and returns:
+      - config_entries: dict {output_file: [(metric_name, regex_pattern)]}
+      - colorscale_metrics: set of metric names flagged with 'colorscale' as a 4th field
+
+    Config line format (4th field is optional):
+      metric_name;output_file;regex_pattern[;colorscale]
+    """
     config_entries = defaultdict(list)
+    colorscale_metrics = set()
     with open(config_filename, "r") as config_file:
         for line in config_file:
             line = line.strip()
             if not line or line.startswith("#"):
                 continue
             parts = line.split(";")
-            if len(parts) == 3:
-                metric_name, output_file, regex_pattern = parts
+            if len(parts) >= 3:
+                metric_name = parts[0].strip()
+                output_file = parts[1].strip()
+                regex_pattern = parts[2].strip()
                 print(f"Metric Name: {metric_name} - Regex pattern: {regex_pattern}")
-                config_entries[output_file.strip()].append((metric_name.strip(), regex_pattern.strip()))
-    return config_entries
+                config_entries[output_file].append((metric_name, regex_pattern))
+                if len(parts) >= 4 and parts[3].strip().lower() == "colorscale":
+                    colorscale_metrics.add(metric_name)
+    return config_entries, colorscale_metrics
 
 
 def extract_metrics(config_entries, circuit_dir, metrics_map):
@@ -230,14 +242,20 @@ def generate_average_sheets(wb, all_task_data, metric_keys):
                     ws_avg.cell(row=r_idx, column=m_idx + 2, value="")
 
 
-def build_ratio_sheet(wb, all_task_data, metric_keys):
+def build_ratio_sheet(wb, all_task_data, metric_keys, colorscale_metrics=None):
     """
     Creates a 'Comparison' sheet with only ratio columns, referencing the average sheets.
+    colorscale_metrics: set of metric names whose ratio columns should get green-white-red
+                        conditional formatting (midpoint = 1).
     """
     if not all_task_data or len(all_task_data) < 2:
-        return 
+        return
+
+    if colorscale_metrics is None:
+        colorscale_metrics = set()
 
     ws = wb.create_sheet(title="Comparison")
+    ws.freeze_panes = "B2"  # freeze first row and first column
 
     # Get the column map for the newly created average sheets
     avg_col_map = get_metric_col_map(wb, "Task_1_Avg", metric_keys)
@@ -248,7 +266,7 @@ def build_ratio_sheet(wb, all_task_data, metric_keys):
     # Collect all circuits across all tasks and seeds
     all_circuits = sorted(set(row.get("circuit") for task_data in all_task_data for seed_data in task_data.values() for row in seed_data))
     num_tasks = len(all_task_data)
-    
+
     # Create headers for ratios only
     headers = ["circuit"]
     for metric in metric_keys:
@@ -256,30 +274,73 @@ def build_ratio_sheet(wb, all_task_data, metric_keys):
             headers.append(f"{metric}_ratio_Task{task_idx}_vs_Task1")
     ws.append(headers)
 
+    # Pre-compute which column indices belong to each metric (for color scale later)
+    # Mirrors the iteration order of the data-writing loop below.
+    metric_ratio_cols = {}  # metric -> [col_idx, ...]
+    col_ptr = 2
+    for metric in metric_keys:
+        if not avg_col_map.get(metric):
+            continue
+        cols = list(range(col_ptr, col_ptr + (num_tasks - 1)))
+        metric_ratio_cols[metric] = cols
+        col_ptr += (num_tasks - 1)
+
     # Write data rows
     for r_idx, circuit in enumerate(all_circuits, start=2):
         ws.cell(row=r_idx, column=1, value=circuit)  # circuit name
-        
-        col_ptr = 2
+
         for metric in metric_keys:
-            base_col_letter = avg_col_map.get(metric) # Task 1's average column letter
-            if not base_col_letter: continue
+            base_col_letter = avg_col_map.get(metric)  # Task 1's average column letter
+            if not base_col_letter:
+                continue
 
             # Reference Task_1_Avg sheet
             base_ref = f'\'Task_1_Avg\'!{base_col_letter}{r_idx}'
-            
-            for task_idx in range(1, num_tasks): # Task_2, Task_3, etc.
+
+            for t_off, task_idx in enumerate(range(1, num_tasks)):  # Task_2, Task_3, etc.
                 compare_col_letter = avg_col_map.get(metric)
-                if not compare_col_letter: continue
+                if not compare_col_letter:
+                    continue
 
                 # Reference Task_i_Avg sheet
                 compare_ref = f'\'Task_{task_idx + 1}_Avg\'!{compare_col_letter}{r_idx}'
-                
+
                 # Corrected formula with ISBLANK check
                 ratio_formula = f'=IF(OR({base_ref}="", {compare_ref}=""), "", {compare_ref}/{base_ref})'
 
-                ws.cell(row=r_idx, column=col_ptr, value=ratio_formula)
-                col_ptr += 1
+                ws.cell(row=r_idx, column=metric_ratio_cols[metric][t_off], value=ratio_formula)
+
+    # Add Average and STD summary rows at the bottom
+    data_start_row = 2
+    data_end_row = len(all_circuits) + 1  # last data row
+
+    avg_row = data_end_row + 1
+    std_row = data_end_row + 2
+
+    ws.cell(row=avg_row, column=1, value="Average")
+    ws.cell(row=std_row, column=1, value="STD")
+
+    num_ratio_cols = sum(len(cols) for cols in metric_ratio_cols.values())
+    for col_idx in range(2, 2 + num_ratio_cols):
+        col_letter = get_column_letter(col_idx)
+        data_range = f"{col_letter}{data_start_row}:{col_letter}{data_end_row}"
+        ws.cell(row=avg_row, column=col_idx, value=f"=IFERROR(AVERAGEIF({data_range}, \"<>\"), \"\")")
+        ws.cell(row=std_row, column=col_idx, value=f"=IFERROR(STDEV(IF({data_range}<>\"\",{data_range})), \"\")")
+
+    # Apply green-white-red color scale (midpoint = 1) to data rows only
+    # for each metric flagged with 'colorscale' in the config.
+    for metric in colorscale_metrics:
+        if metric not in metric_ratio_cols:
+            continue
+        for col_idx in metric_ratio_cols[metric]:
+            col_letter = get_column_letter(col_idx)
+            cell_range = f"{col_letter}{data_start_row}:{col_letter}{data_end_row}"
+            rule = ColorScaleRule(
+                start_type="min",  start_color="63BE7B",  # green
+                mid_type="num",    mid_value=1, mid_color="FFFFFF",  # white at 1
+                end_type="max",    end_color="F8696B",    # red
+            )
+            ws.conditional_formatting.add(cell_range, rule)
 
 
 def getArgs():
@@ -307,7 +368,7 @@ def main():
     num_processes = args.num_processes
 
     print(f"Using {num_processes} processes for parallel processing")
-    config_entries = parse_config_file(args.config_file)
+    config_entries, colorscale_metrics = parse_config_file(args.config_file)
 
     # Build all_task_data: list per task_dir; each task is dict per seed; each seed is list of dict rows
     all_task_data = []
@@ -346,7 +407,7 @@ def main():
     generate_average_sheets(wb, all_task_data, metric_keys)
     
     # Step 2: Generate comparison sheet with ratios only
-    build_ratio_sheet(wb, all_task_data, metric_keys)
+    build_ratio_sheet(wb, all_task_data, metric_keys, colorscale_metrics)
 
     wb.save(out_xlsx)
     print(f"✅ Wrote Excel report with seed-based analysis: {out_xlsx}")
