@@ -325,7 +325,7 @@ def build_ratio_sheet(wb, all_task_data, metric_keys, colorscale_metrics=None):
         col_letter = get_column_letter(col_idx)
         data_range = f"{col_letter}{data_start_row}:{col_letter}{data_end_row}"
         ws.cell(row=avg_row, column=col_idx, value=f"=IFERROR(AVERAGEIF({data_range}, \"<>\"), \"\")")
-        ws.cell(row=std_row, column=col_idx, value=f"=IFERROR(STDEV(IF({data_range}<>\"\",{data_range})), \"\")")
+        ws.cell(row=std_row, column=col_idx, value=f"=IFERROR(STDEV({data_range}), \"\")")
 
     # Apply green-white-red color scale (midpoint = 1) to data rows only
     # for each metric flagged with 'colorscale' in the config.

@@ -1,4 +1,4 @@
-# VPR Packing Metrics
+#VPR Packing Metrics
 num_io_blocks;packing.rpt;^\s*io\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
 num_clb_blocks;packing.rpt;^\s*clb\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
 num_bram_blocks;packing.rpt;^\s*bram\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s*$
@@ -14,7 +14,114 @@ initial_placement_cpd;placement.rpt;Initial placement estimated Critical Path De
 
 
 #VPR Routing Metrics
-critical_path_delay;routing.rpt;Final critical path delay \(least slack\): (.*) ns
-routed_wirelength;routing.rpt;\s*Total wirelength: (.*), average .*
+num_nodes;routing.rpt;RR Graph Nodes: (\d+)
+num_edges;routing.rpt;RR Graph Edges: (\d+)
+critical_path_delay;routing.rpt;Final critical path delay \(least slack\): (.*) ns;colorscale
+routed_wirelength;routing.rpt;\s*Total wirelength: (.*), average .*;colorscale
 total_heap_pushes;routing.rpt;Router Stats: .*total_heap_pushes: (\d+) .*
 total_heap_pops;routing.rpt;Router Stats: .*total_heap_pops: (\d+)
+
+# # VPR Tap Usage Statistics - Overall
+# overall_num_wires;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Wire length \d+ \((\d+) wires,
+# overall_pin_fanouts;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# overall_wire_fanouts;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# overall_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# overall_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- Overall ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# 
+# # VPR Tap Usage Statistics - CHANX
+# chanx_num_wires;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Wire length \d+ \((\d+) wires,
+# chanx_pin_fanouts;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# chanx_wire_fanouts;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# chanx_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chanx_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANX ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# 
+# # VPR Tap Usage Statistics - CHANY
+# chany_num_wires;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Wire length \d+ \((\d+) wires,
+# chany_pin_fanouts;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# chany_wire_fanouts;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# chany_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# chany_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- CHANY ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# 
+# # VPR Tap Usage Statistics - INC CHANX
+# inc_chanx_num_wires;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Wire length \d+ \((\d+) wires,
+# inc_chanx_pin_fanouts;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# inc_chanx_wire_fanouts;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# inc_chanx_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chanx_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANX ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# 
+# # VPR Tap Usage Statistics - DEC CHANX
+# dec_chanx_num_wires;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Wire length \d+ \((\d+) wires,
+# dec_chanx_pin_fanouts;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# dec_chanx_wire_fanouts;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# dec_chanx_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chanx_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANX ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# 
+# # VPR Tap Usage Statistics - INC CHANY
+# inc_chany_num_wires;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Wire length \d+ \((\d+) wires,
+# inc_chany_pin_fanouts;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# inc_chany_wire_fanouts;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# inc_chany_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# inc_chany_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- INC CHANY ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# 
+# # VPR Tap Usage Statistics - DEC CHANY
+# dec_chany_num_wires;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Wire length \d+ \((\d+) wires,
+# dec_chany_pin_fanouts;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Wire length \d+ \(\d+ wires, (\d+) pin fanouts,
+# dec_chany_wire_fanouts;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Wire length \d+ \(\d+ wires, \d+ pin fanouts, (\d+) wire fanouts\)
+# dec_chany_tap0_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+0:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap1_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+1:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap2_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+2:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap3_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+3:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap4_pins_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+4:\s+pins\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap0_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+0:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap1_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+1:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap2_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+2:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap3_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+3:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
+# dec_chany_tap4_wires_pct;vpr_stdout.log;CONTEXT:^--- DEC CHANY ---$>>>Tap\s+4:.*wires\s+\d+\s+\(\s*([\d.]+)%\)
