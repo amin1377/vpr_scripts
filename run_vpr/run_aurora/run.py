@@ -163,7 +163,7 @@ def run_vpr_command(command: List[str], working_dir: Path) -> Tuple[bool, str]:
             cwd=working_dir,
             capture_output=True,
             text=True,
-            timeout=3600  # 1 hour timeout
+            timeout=7200  # 1 hour timeout
         )
         
         # Write captured output to files
@@ -232,9 +232,9 @@ def process_circuit(vpr_binary: Path,
 
         blif_source = resource_dir / f"{circuit_name}_post_synth.blif"
         sdc_source = resource_dir / f"{circuit_name}.sdc"
-        timing_corner_device_data_source = device_data_dir / f"TURNKEYCRR-FPGA{device_size}-{device_data_quarter}" / "LVT" / "SSPG_0P72_125C"
-        rr_graph_source = timing_corner_device_data_source / "rr_graph.bin"
-        router_lookahead_source = timing_corner_device_data_source  / "router_lookahead.bin"
+        timing_corner_device_data_source = device_data_dir / f"TURNKEY-FPGA{device_size}" / "LVT" / "SSPG_0P72_125C"
+        sb_maps = device_data_dir / f"TURNKEY-FPGA{device_size}" / "aurora" / "SB_MAPS.yml"
+        sb_templates = timing_corner_device_data_source / "CSV"
         vpr_xml_source = timing_corner_device_data_source / "vpr.xml"
         
         command = [f"{vpr_binary}"
@@ -278,14 +278,18 @@ def process_circuit(vpr_binary: Path,
         , "detailed"
         , "--generate_rr_node_overuse_report"
         , "on"
-        , "--read_rr_graph"
-        , f"{rr_graph_source}"
-        , "--read_router_lookahead"
-        , f"{router_lookahead_source}"
         , "--allow_dangling_combinational_nodes"
         , "on"
         , "--router_initial_acc_cost_chan_congestion_weight"
         , "0.0"
+        , "--sb_count_dir"
+        , "sb_count"
+        , "--sb_maps"
+        , f"{sb_maps}"
+        , "--sb_templates"
+        , f"{sb_templates}"
+        , "--annotated_rr_graph"
+        , "on"
         , "--seed"
         , f"{seed_number}"
         ]
@@ -329,7 +333,7 @@ def main():
     parser.add_argument("--max_workers", type=int, default=4,
                        help="Maximum number of parallel processes (default: 4)")
     
-    parser.add_argument("--seed_numbers", nargs='+', type=int, required=True,
+    parser.add_argument("--seed_numbers", nargs='+', type=int, default=[1],
                        help="Seed numbers for the VPR command (space-separated)")
 
     parser.add_argument("--vpr_additional_args", type=str, default="",
